@@ -1,0 +1,22 @@
+package fr.osallek.osasaveextractor.config;
+
+import java.nio.charset.StandardCharsets;
+import org.springframework.context.MessageSource;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.support.ResourceBundleMessageSource;
+
+@Configuration
+public class OsaSaveExtractorConfig {
+
+    @Bean
+    public MessageSource messageSource() {
+        final ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+
+        messageSource.addBasenames("messages/ose");
+        messageSource.setUseCodeAsDefaultMessage(true);
+        messageSource.setDefaultEncoding(StandardCharsets.UTF_8.name());
+
+        return messageSource;
+    }
+}
