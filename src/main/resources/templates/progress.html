@@ -14,7 +14,14 @@
              th:attr="aria-valuenow=${progress}" aria-valuemin="0" aria-valuemax="100"
              th:style="${'width: ' + progress + '%'}"></div>
     </div>
-    <div style="text-align: center" th:text="#{'ose.progress.' + ${progressLabel}}"></div>
+    <div style="text-align: center">
+        <span th:text="#{'ose.progress.' + ${progressLabel}}"></span>
+        <span th:if="${progressSubLabel != null}"
+              th:text="' (' + #{'ose.progress.' + ${progressSubLabel}} + ')'"></span>
+    </div>
+    <div id="progress-error" class="alert alert-danger" role="alert" th:if="${progressError}"
+         th:text="#{ose.progress.error}">
+    </div>
 </div>
 </body>
 </html>

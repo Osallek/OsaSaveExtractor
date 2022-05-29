@@ -1,8 +1,13 @@
 package fr.osallek.osasaveextractor.service.object;
 
 public enum ProgressStep {
-    PARSING_GAME(0),
+    NONE(0),
+    PARSING_GAME(1),
     PARSING_SAVE(33),
+    PARSING_SAVE_INFO(33),
+    PARSING_SAVE_PROVINCES(35),
+    PARSING_SAVE_COUNTRIES(50),
+    PARSING_SAVE_WARS(63),
     SENDING_DATA(66),
     FINISHED(100);
 

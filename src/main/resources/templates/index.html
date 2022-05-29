@@ -11,7 +11,7 @@
 <div class="container my-5">
     <h1 class="mb-5">Osa Save Extractor</h1>
     <div class="row mb-4">
-        <div class="card col-lg-6 p-0">
+        <div class="card col-xl-6 col-lg-8 p-0">
             <div class="card-header">
                 <h5 class="card-title" th:text="#{ose.id}">Id</h5>
                 <h6 class="card-subtitle mb-2 text-muted" th:text="#{ose.id.desc}"></h6>
@@ -21,44 +21,49 @@
             </div>
         </div>
     </div>
-    <div class="row mb-4">
-        <div class="card col-lg-6 p-0">
-            <div class="card-header">
-                <h5 class="card-title" th:text="#{ose.local-saves}">Id</h5>
-            </div>
-            <div class="card-body">
-                <select id="saves-select" class="custom-select w-100" th:if="${!localSaves.isEmpty}">
-                    <option selected disabled hidden th:text="#{ose.local-saves.choose}"></option>
-                    <option th:each="save : ${localSaves}" th:value="${save.value}" th:text="${save.key}"></option>
-                </select>
-                <div th:if="${localSaves.isEmpty}" th:text="#{ose.saves.none}"></div>
-            </div>
-        </div>
-    </div>
-    <div class="row mb-4">
-        <div class="card col-lg-6 p-0">
-            <div class="card-header">
-                <h5 class="card-title" th:text="#{ose.server-saves}">Id</h5>
-            </div>
-            <div class="card-body">
-                <select class="custom-select w-100" th:if="${!serverSaves.isEmpty}">
-                    <option selected disabled hidden th:text="#{ose.server-saves.choose}"></option>
-                    <option th:each="save : ${serverSaves}" th:value="${save.id}"
-                            th:text="${save.name + ' [' + save.date + '] ('} + #{ose.creation-date} + ${' ' + save.creationDate + ')'}"></option>
-                </select>
-                <div th:if="${serverSaves.isEmpty}" th:text="#{ose.saves.none}"></div>
+    <form id="form" action="#" th:object="${parse}">
+        <div class="row mb-4">
+            <div class="card col-xl-6 col-lg-8 p-0">
+                <div class="card-header">
+                    <h5 class="card-title" th:text="#{ose.local-saves}">Id</h5>
+                </div>
+                <div class="card-body">
+                    <select id="local-save-select" class="custom-select w-100" th:if="${!localSaves.isEmpty}"
+                            th:field="*{save}">
+                        <option selected disabled hidden value="default" th:text="#{ose.local-saves.choose}"></option>
+                        <option th:each="save : ${localSaves}" th:value="${save.value}" th:text="${save.key}"></option>
+                    </select>
+                    <div th:if="${localSaves.isEmpty}" th:text="#{ose.saves.none}"></div>
+                </div>
             </div>
         </div>
-    </div>
-    <div id="analyse" class="row mb-4">
-        <div>
-            <button id="analyse-button" type="button" class="btn btn-primary" th:disabled="${buttonDisabled}">
-                <span th:text="#{ose.analyse}">Analyse</span>
-            </button>
+        <div class="row mb-4">
+            <div class="card col-xl-6 col-lg-8 p-0">
+                <div class="card-header">
+                    <h5 class="card-title" th:text="#{ose.server-saves}">Id</h5>
+                </div>
+                <div class="card-body">
+                    <select id="server-save-select" class="custom-select w-100" th:if="${!serverSaves.isEmpty}"
+                            th:field="*{previousSave}">
+                        <option selected disabled hidden value="default" th:text="#{ose.server-saves.choose}"></option>
+                        <option th:each="save : ${serverSaves}" th:value="${save.id}"
+                                th:text="${save.name + ' [' + save.date + '] ('} + #{ose.creation-date} + ${' ' + save.creationDate + ')'}"></option>
+                    </select>
+                    <div th:if="${serverSaves.isEmpty}" th:text="#{ose.saves.none}"></div>
+                </div>
+            </div>
         </div>
-    </div>
+        <div id="analyse" class="row mb-4">
+            <div>
+                <button id="analyse-button" type="submit" value="submit" class="btn btn-primary"
+                        th:disabled="${buttonDisabled}">
+                    <span th:text="#{ose.analyse}">Analyse</span>
+                </button>
+            </div>
+        </div>
+    </form>
     <div class="row mb-4">
-        <div class="col-lg-6">
+        <div class="col-xl-6 col-lg-8">
             <div id="progress"></div>
         </div>
     </div>
@@ -66,31 +71,56 @@
 <script th:src="@{/webjars/popper.js/2.9.3/umd/popper.min.js}"></script>
 <script th:src="@{/webjars/bootstrap/5.1.3/js/bootstrap.min.js}"></script>
 <script th:src="@{/webjars/jquery/3.6.0/jquery.min.js}"></script>
+</body>
 <script>
   let interval;
   const analyseButton = $('#analyse-button');
 
-  $('#saves-select').on('change', function () {
+  $('#local-save-select').on('change', function () {
     analyseButton.prop('disabled', false)
   });
 
-  analyseButton.click(function () {
-    updateProgress();
-    interval = setInterval(updateProgress, 1000);
+  analyseButton.click(function (e) {
+    e.preventDefault();
     analyseButton.prop('disabled', true)
     analyseButton.append('<span class="spinner-grow spinner-grow-sm pl-1" role="status" aria-hidden="true"></span>');
+
+    $.ajax({
+      url: '/parse',
+      type: 'post',
+      data: $('#form').serialize(),
+      error: function (a, b, c) {
+        setError();
+      }
+    }).done(function () {
+      updateProgress();
+      interval = setInterval(updateProgress, 1000);
+    });
   });
 
   function updateProgress() {
     $.get("progress").done(function (fragment) {
       $("#progress").replaceWith(fragment);
 
-      if (!$('#bar').length) {
+      let bar = $('#bar');
+
+      if (!bar.length) {
         clearInterval(interval);
         $('#analyse').remove();
       }
+
+      if ($('#progress-error').length) {
+        setError();
+      }
     });
   }
+
+  function setError() {
+    clearInterval(interval);
+
+    let bar = $('#bar');
+    bar.removeClass('progress-bar-striped progress-bar-animated bg-success')
+    bar.addClass('bg-danger');
+  }
 </script>
-</body>
 </html>
