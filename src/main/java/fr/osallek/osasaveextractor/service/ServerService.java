@@ -1,6 +1,10 @@
 package fr.osallek.osasaveextractor.service;
 
 import fr.osallek.osasaveextractor.service.object.ServerSave;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -10,7 +14,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
-import org.springframework.stereotype.Service;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class ServerService {
@@ -36,6 +40,10 @@ public class ServerService {
         saves.sort(Comparator.comparing(ServerSave::creationDate).reversed());
 
         return saves;
+    }
+
+    public CompletableFuture<String> uploadData(Path saveFile, Path colorsFile, Path provinceMapFile) {
+        return CompletableFuture.completedFuture("http://localhost:8080/saves/" + UUID.randomUUID()); //Todo
     }
 
     private LocalDateTime getRandomDateTime() {
