@@ -43,6 +43,12 @@ public class ServerService {
     }
 
     public CompletableFuture<String> uploadData(Path saveFile, Path colorsFile, Path provinceMapFile) {
+        try {
+            Thread.sleep(2000L);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
         return CompletableFuture.completedFuture("http://localhost:8080/saves/" + UUID.randomUUID()); //Todo
     }
 

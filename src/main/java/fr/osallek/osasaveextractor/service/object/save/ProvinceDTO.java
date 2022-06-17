@@ -1,39 +1,45 @@
 package fr.osallek.osasaveextractor.service.object.save;
 
-import fr.osallek.clausewitzparser.common.ClausewitzUtils;
-import fr.osallek.eu4parser.common.Eu4MapUtils;
+import fr.osallek.eu4parser.model.save.province.ProvinceBuilding;
 import fr.osallek.eu4parser.model.save.province.SaveProvince;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 
-public class ProvinceDTO implements Comparable<ProvinceDTO> {
+public class ProvinceDTO extends SimpleProvinceDTO {
 
-    private final int id;
+    private final Double baseTax;
 
-    private final String name;
+    private final Double baseProduction;
 
-    private final ColorDTO color;
+    private final Double baseManpower;
+
+    private final Double devastation;
+
+    private final List<Double> institutions;
+
+    private final boolean isCity;
+
+    private final Map<String, Integer> improvements;
+
+    private final List<String> buildings;
 
     private final List<ProvinceHistoryDTO> history = new ArrayList<>();
 
     public ProvinceDTO(SaveProvince province) {
-        this.id = province.getId();
-        this.name = ClausewitzUtils.removeQuotes(province.getName());
-
-        if (!province.isImpassable() && !province.isOcean() && !province.isLake()) {
-            if (province.getOwner() != null) {
-                this.color = new ColorDTO(province.getOwner().getColor());
-            } else {
-                this.color = new ColorDTO(Eu4MapUtils.EMPTY_COLOR);
-            }
-        } else {
-            this.color = null;
-        }
+        super(province);
+        this.baseManpower = province.getBaseManpower();
+        this.baseProduction = province.getBaseProduction();
+        this.baseTax = province.getBaseTax();
+        this.devastation = province.getDevastation();
+        this.institutions = province.getInstitutionsProgress();
+        this.isCity = province.isCity();
+        this.improvements = province.getImproveCount();
+        this.buildings = province.getBuildings().stream().map(ProvinceBuilding::getName).collect(Collectors.toList());
 
         if (province.getHistory() != null) {
             this.history.addAll(province.getHistory().getEvents().stream().map(ProvinceHistoryDTO::new).toList());
@@ -42,42 +48,39 @@ public class ProvinceDTO implements Comparable<ProvinceDTO> {
         }
     }
 
-    public int getId() {
-        return id;
+    public Double getBaseTax() {
+        return baseTax;
     }
 
-    public String getName() {
-        return name;
+    public Double getBaseProduction() {
+        return baseProduction;
     }
 
-    public ColorDTO getColor() {
-        return color;
+    public Double getBaseManpower() {
+        return baseManpower;
+    }
+
+    public Double getDevastation() {
+        return devastation;
+    }
+
+    public List<Double> getInstitutions() {
+        return institutions;
+    }
+
+    public boolean isCity() {
+        return isCity;
+    }
+
+    public Map<String, Integer> getImprovements() {
+        return improvements;
     }
 
     public List<ProvinceHistoryDTO> getHistory() {
         return history;
     }
 
-    @Override
-    public int compareTo(ProvinceDTO o) {
-        return Comparator.comparingInt(ProvinceDTO::getId).compare(this, o);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-
-        if (!(o instanceof ProvinceDTO that)) {
-            return false;
-        }
-
-        return id == that.id;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
+    public List<String> getBuildings() {
+        return buildings;
     }
 }

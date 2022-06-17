@@ -1,12 +1,11 @@
 package fr.osallek.osasaveextractor.service.object.save;
 
-import fr.osallek.eu4parser.model.game.ProvinceRevolt;
-import fr.osallek.eu4parser.model.save.province.SaveAdvisor;
+import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.model.save.province.SaveProvinceHistoryEvent;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 public class ProvinceHistoryDTO {
 
@@ -28,19 +27,19 @@ public class ProvinceHistoryDTO {
 
     private final Boolean hre;
 
-    private final Integer baseTax;
+    private final Double baseTax;
 
-    private final Integer baseProduction;
+    private final Double baseProduction;
 
-    private final Integer baseManpower;
+    private final Double baseManpower;
 
     private final String tradeGood;
 
-    private final NameDTO name;
+    private final String name;
 
     private final String tribalOwner;
 
-    private final AdvisorDTO advisor;
+    private final Integer advisor;
 
     private final Integer nativeHostileness;
 
@@ -62,7 +61,7 @@ public class ProvinceHistoryDTO {
 
     private final Boolean isCity;
 
-    private final List<String> buildings;
+    private final Map<String, Boolean> buildings;
 
     public ProvinceHistoryDTO(SaveProvinceHistoryEvent event) {
         this.date = event.getDate();
@@ -78,9 +77,9 @@ public class ProvinceHistoryDTO {
         this.baseProduction = event.getBaseProduction();
         this.baseManpower = event.getBaseManpower();
         this.tradeGood = event.getTradeGood();
-        this.name = event.getName() == null ? null : new NameDTO(event.getName().getKey(), event.getName().getValue());
-        this.tribalOwner = event.getTribalOwner();
-        this.advisor = event.getAdvisor() == null ? null : new AdvisorDTO(event.getAdvisor());
+        this.name = event.getName() == null ? null : ClausewitzUtils.removeQuotes(event.getName().getKey());
+        this.tribalOwner = ClausewitzUtils.removeQuotes(event.getTribalOwner());
+        this.advisor = event.getAdvisor() == null ? null : event.getAdvisor().getId().getId();
         this.nativeHostileness = event.getNativeHostileness();
         this.nativeFerocity = event.getNativeFerocity();
         this.nativeSize = event.getNativeSize();
@@ -130,15 +129,15 @@ public class ProvinceHistoryDTO {
         return hre;
     }
 
-    public Integer getBaseTax() {
+    public Double getBaseTax() {
         return baseTax;
     }
 
-    public Integer getBaseProduction() {
+    public Double getBaseProduction() {
         return baseProduction;
     }
 
-    public Integer getBaseManpower() {
+    public Double getBaseManpower() {
         return baseManpower;
     }
 
@@ -146,7 +145,7 @@ public class ProvinceHistoryDTO {
         return tradeGood;
     }
 
-    public NameDTO getName() {
+    public String getName() {
         return name;
     }
 
@@ -154,7 +153,7 @@ public class ProvinceHistoryDTO {
         return tribalOwner;
     }
 
-    public AdvisorDTO getAdvisor() {
+    public Integer getAdvisor() {
         return advisor;
     }
 
@@ -198,7 +197,7 @@ public class ProvinceHistoryDTO {
         return isCity;
     }
 
-    public List<String> getBuildings() {
+    public Map<String, Boolean> getBuildings() {
         return buildings;
     }
 }

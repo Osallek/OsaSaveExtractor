@@ -8,7 +8,8 @@ public enum ProgressStep {
     PARSING_SAVE_PROVINCES(35),
     PARSING_SAVE_COUNTRIES(50),
     PARSING_SAVE_WARS(63),
-    SENDING_DATA(66),
+    GENERATING_DATA(66),
+    SENDING_DATA(90),
     FINISHED(100);
 
     public final int progress;

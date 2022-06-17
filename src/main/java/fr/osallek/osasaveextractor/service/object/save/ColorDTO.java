@@ -4,13 +4,13 @@ import java.awt.Color;
 
 public class ColorDTO {
 
-    private int red;
+    private final int red;
 
-    private int green;
+    private final int green;
 
-    private int blue;
+    private final int blue;
 
-    private int alpha;
+    private final int alpha;
 
     public ColorDTO(int red, int green, int blue, int alpha) {
         this.red = red;
@@ -37,31 +37,15 @@ public class ColorDTO {
         return red;
     }
 
-    public void setRed(int red) {
-        this.red = red;
-    }
-
     public int getGreen() {
         return green;
-    }
-
-    public void setGreen(int green) {
-        this.green = green;
     }
 
     public int getBlue() {
         return blue;
     }
 
-    public void setBlue(int blue) {
-        this.blue = blue;
-    }
-
     public int getAlpha() {
         return alpha;
-    }
-
-    public void setAlpha(int alpha) {
-        this.alpha = alpha;
     }
 }

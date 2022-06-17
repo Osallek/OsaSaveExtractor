@@ -111,7 +111,7 @@ public class Eu4Service {
                         this.state.setSubStep(ProgressStep.PARSING_SAVE_WARS);
                     }
                 }));
-                this.state.setStep(ProgressStep.SENDING_DATA);
+                this.state.setStep(ProgressStep.GENERATING_DATA);
                 this.state.setSubStep(null);
 
                 Path tmpFolder = Path.of(FileUtils.getTempDirectoryPath(), UUID.randomUUID().toString());
@@ -132,6 +132,7 @@ public class Eu4Service {
 
                 Path dataFile = tmpFolder.resolve("data.json");
                 this.objectMapper.writeValue(dataFile.toFile(), new SaveDTO(save));
+                this.state.setStep(ProgressStep.SENDING_DATA);
 
                 return this.serverService.uploadData(dataFile, colorsFile, provinceMapFile)
                                          .whenComplete((s, throwable) -> {
