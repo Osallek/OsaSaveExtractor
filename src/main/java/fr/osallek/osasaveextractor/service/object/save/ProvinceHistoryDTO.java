@@ -2,7 +2,6 @@ package fr.osallek.osasaveextractor.service.object.save;
 
 import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.model.save.province.SaveProvinceHistoryEvent;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -51,8 +50,6 @@ public class ProvinceHistoryDTO {
 
     private final String controller;
 
-    private final String removeClaim;
-
     private final List<String> discoveredBy;
 
     private final String culture;
@@ -85,7 +82,6 @@ public class ProvinceHistoryDTO {
         this.nativeSize = event.getNativeSize();
         this.owner = event.getOwner();
         this.controller = event.getController();
-        this.removeClaim = event.getRemoveClaim();
         this.discoveredBy = event.getDiscoveredBy();
         this.culture = event.getCulture();
         this.religion = event.getReligion();
@@ -175,10 +171,6 @@ public class ProvinceHistoryDTO {
 
     public String getController() {
         return controller;
-    }
-
-    public String getRemoveClaim() {
-        return removeClaim;
     }
 
     public List<String> getDiscoveredBy() {

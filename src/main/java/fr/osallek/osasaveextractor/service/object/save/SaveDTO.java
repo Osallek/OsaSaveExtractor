@@ -1,8 +1,6 @@
 package fr.osallek.osasaveextractor.service.object.save;
 
 import fr.osallek.eu4parser.model.save.Save;
-import org.apache.commons.collections4.CollectionUtils;
-
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
@@ -10,6 +8,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.CollectionUtils;
 
 public class SaveDTO {
 
@@ -36,6 +35,10 @@ public class SaveDTO {
     private final List<AreaDTO> areas;
 
     private final List<AdvisorDTO> advisors;
+
+    private final List<CultureDTO> cultures;
+
+    private final List<ReligionDTO> religions;
 
     public SaveDTO(Save save) {
         this.id = UUID.randomUUID().toString();
@@ -64,6 +67,8 @@ public class SaveDTO {
         this.areas = save.getAreas().values().stream().map(AreaDTO::new).collect(Collectors.toList());
         this.advisors = save.getAdvisors().values().stream().map(AdvisorDTO::new).collect(Collectors.toList());
         this.countries = save.getCountries().values().stream().map(country -> new CountryDTO(country, save.getDiplomacy())).toList();
+        this.cultures = save.getGame().getCultures().stream().map(CultureDTO::new).toList();
+        this.religions = save.getReligions().getReligions().values().stream().filter(r -> r.getGameReligion() != null).map(ReligionDTO::new).toList();
     }
 
     public String getId() {
@@ -112,5 +117,13 @@ public class SaveDTO {
 
     public List<AdvisorDTO> getAdvisors() {
         return advisors;
+    }
+
+    public List<CultureDTO> getCultures() {
+        return cultures;
+    }
+
+    public List<ReligionDTO> getReligions() {
+        return religions;
     }
 }
