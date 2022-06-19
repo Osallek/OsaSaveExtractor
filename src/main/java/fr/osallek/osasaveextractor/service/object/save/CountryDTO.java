@@ -10,16 +10,16 @@ import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.eu4parser.model.save.diplomacy.DatableRelation;
 import fr.osallek.eu4parser.model.save.diplomacy.Diplomacy;
 import fr.osallek.eu4parser.model.save.diplomacy.Subsidies;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.tuple.Pair;
-
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class CountryDTO {
 
@@ -58,16 +58,7 @@ public class CountryDTO {
     private final Map<String, Integer> ideaGroups;
 
     private final GovernmentDTO government;
-
-    private final List<LeaderDTO> leader;
-
     private final List<Integer> advisors;
-
-    //    private final List<Monarch> monarchs;
-
-    //    private final Heir heir;
-
-    //    private final Queen queen;
 
     private final Map<PowerSpent, Integer> admPowerSpent;
 
@@ -161,6 +152,8 @@ public class CountryDTO {
 
     private final double innovativeness;
 
+    private final List<CountryHistoryDTO> history = new ArrayList<>();
+
     public CountryDTO(SaveCountry country, Diplomacy diplomacy) {
         this.tag = country.getTag();
         this.customName = country.getCustomName();
@@ -180,7 +173,6 @@ public class CountryDTO {
         this.loans = country.getLoans().stream().map(LoanDTO::new).toList();
         this.ideaGroups = country.getIdeaGroups().getIdeaGroupsNames();
         this.government = country.getGovernment() == null ? null : new GovernmentDTO(country.getGovernment());
-        this.leader = MapUtils.isEmpty(country.getLeaders()) ? null : country.getLeaders().values().stream().map(LeaderDTO::new).toList();
         this.advisors = country.getActiveAdvisors().keySet().stream().toList();
         this.admPowerSpent = country.getAdmPowerSpent() == null ? null : country.getAdmPowerSpent().getPowerSpent();
         this.dipPowerSpent = country.getDipPowerSpent() == null ? null : country.getDipPowerSpent().getPowerSpent();
@@ -329,6 +321,12 @@ public class CountryDTO {
         this.sailors = NumbersUtils.doubleToInt(NumbersUtils.doubleOrDefault(country.getSailors()) * 1000);
         this.losses = country.getLosses();
         this.innovativeness = NumbersUtils.doubleOrDefault(country.getInnovativeness());
+
+        if (country.getHistory() != null) {
+            this.history.addAll(country.getHistory().getEvents().stream().map(CountryHistoryDTO::new).toList());
+            this.history.add(new CountryHistoryDTO(country.getHistory()));
+            this.history.sort(Comparator.comparing(CountryHistoryDTO::getDate));
+        }
     }
 
     public String getTag() {
@@ -401,10 +399,6 @@ public class CountryDTO {
 
     public GovernmentDTO getGovernment() {
         return government;
-    }
-
-    public List<LeaderDTO> getLeader() {
-        return leader;
     }
 
     public List<Integer> getAdvisors() {
@@ -589,5 +583,9 @@ public class CountryDTO {
 
     public double getInnovativeness() {
         return innovativeness;
+    }
+
+    public List<CountryHistoryDTO> getHistory() {
+        return history;
     }
 }

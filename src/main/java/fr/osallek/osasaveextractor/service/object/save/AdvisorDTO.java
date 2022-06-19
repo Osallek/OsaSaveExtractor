@@ -40,8 +40,8 @@ public class AdvisorDTO {
         this.skill = advisor.getSkill();
         this.location = advisor.getLocation().getId();
         this.female = BooleanUtils.isTrue(advisor.getFemale());
-        this.culture = advisor.getCulture().getName();
-        this.religion = advisor.getReligion().getName();
+        this.culture = advisor.getCultureName();
+        this.religion = advisor.getReligionName();
     }
 
     public int getId() {

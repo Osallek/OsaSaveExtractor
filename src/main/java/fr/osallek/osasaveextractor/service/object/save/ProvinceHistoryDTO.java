@@ -46,9 +46,9 @@ public class ProvinceHistoryDTO {
 
     private final Integer nativeSize;
 
-    private final String owner;
+    private String owner;
 
-    private final String controller;
+    private String controller;
 
     private final List<String> discoveredBy;
 
@@ -87,6 +87,35 @@ public class ProvinceHistoryDTO {
         this.religion = event.getReligion();
         this.isCity = event.getIsCity();
         this.buildings = event.getBuildings();
+    }
+
+    public ProvinceHistoryDTO(LocalDate date, String owner, String controller) {
+        this.date = date;
+        this.owner = owner;
+        this.controller = controller;
+        this.capital = null;
+        this.colonySize = null;
+        this.unrest = null;
+        this.addCores = null;
+        this.addClaims = null;
+        this.removeCores = null;
+        this.removeClaims = null;
+        this.hre = null;
+        this.baseTax = null;
+        this.baseProduction = null;
+        this.baseManpower = null;
+        this.tradeGood = null;
+        this.name = null;
+        this.tribalOwner = null;
+        this.advisor = null;
+        this.nativeHostileness = null;
+        this.nativeFerocity = null;
+        this.nativeSize = null;
+        this.discoveredBy = null;
+        this.culture = null;
+        this.religion = null;
+        this.isCity = null;
+        this.buildings = null;
     }
 
     public LocalDate getDate() {
@@ -169,8 +198,16 @@ public class ProvinceHistoryDTO {
         return owner;
     }
 
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
+
     public String getController() {
         return controller;
+    }
+
+    public void setController(String controller) {
+        this.controller = controller;
     }
 
     public List<String> getDiscoveredBy() {

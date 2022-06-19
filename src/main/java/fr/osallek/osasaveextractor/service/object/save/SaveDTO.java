@@ -9,6 +9,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class SaveDTO {
 
@@ -40,35 +41,58 @@ public class SaveDTO {
 
     private final List<ReligionDTO> religions;
 
+    private final HreDTO hre;
+
+    private final CelestialEmpireDTO celestialEmpire;
+
+    private final List<Integer> institutions;
+
     public SaveDTO(Save save) {
         this.id = UUID.randomUUID().toString();
         this.name = save.getName();
         this.date = save.getDate();
         this.nbProvinces = Collections.max(save.getGame().getProvinces().keySet()); //Get the greatest id
-
         this.teams = CollectionUtils.isNotEmpty(save.getTeams()) ? save.getTeams().stream().map(TeamDTO::new).toList() : null;
 
         this.provinces = new TreeSet<>();
         this.oceansProvinces = new TreeSet<>();
         this.lakesProvinces = new TreeSet<>();
         this.impassableProvinces = new TreeSet<>();
-        save.getProvinces().values().forEach(province -> {
+        save.getProvinces().values().parallelStream().forEach(province -> {
             if (province.isImpassable()) {
                 this.impassableProvinces.add(new SimpleProvinceDTO(province));
             } else if (province.isOcean()) {
                 this.oceansProvinces.add(new SimpleProvinceDTO(province));
             } else if (province.isLake()) {
                 this.lakesProvinces.add(new SimpleProvinceDTO(province));
-            } else {
+            } else if (province.getHistory() != null) {
                 this.provinces.add(new ProvinceDTO(province));
             }
         });
 
         this.areas = save.getAreas().values().stream().map(AreaDTO::new).collect(Collectors.toList());
         this.advisors = save.getAdvisors().values().stream().map(AdvisorDTO::new).collect(Collectors.toList());
-        this.countries = save.getCountries().values().stream().map(country -> new CountryDTO(country, save.getDiplomacy())).toList();
+        this.countries = save.getCountries().values().parallelStream().map(country -> {
+            CountryDTO countryDTO = new CountryDTO(country, save.getDiplomacy());
+
+            countryDTO.getHistory()
+                      .stream()
+                      .filter(history -> StringUtils.isNotBlank(history.getChangedTagFrom()))
+                      .forEach(history -> this.provinces.stream()
+                                                        .filter(province -> province.isOwnerAt(history.getDate(), history.getChangedTagFrom()))
+                                                        .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag())));
+            return countryDTO;
+        }).toList();
         this.cultures = save.getGame().getCultures().stream().map(CultureDTO::new).toList();
         this.religions = save.getReligions().getReligions().values().stream().filter(r -> r.getGameReligion() != null).map(ReligionDTO::new).toList();
+        this.hre = new HreDTO(save.getHre());
+        this.celestialEmpire = new CelestialEmpireDTO(save.getCelestialEmpire());
+        this.institutions = save.getInstitutions()
+                                .getOrigins()
+                                .stream()
+                                .map(saveProvince -> saveProvince == null ? 0 : saveProvince.getId())
+                                .toList()
+                                .subList(0, (int) save.getInstitutions().getNbAvailable());
     }
 
     public String getId() {
@@ -125,5 +149,17 @@ public class SaveDTO {
 
     public List<ReligionDTO> getReligions() {
         return religions;
+    }
+
+    public HreDTO getHre() {
+        return hre;
+    }
+
+    public CelestialEmpireDTO getCelestialEmpire() {
+        return celestialEmpire;
+    }
+
+    public List<Integer> getInstitutions() {
+        return institutions;
     }
 }
