@@ -3,13 +3,15 @@ package fr.osallek.osasaveextractor.service.object.save;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import fr.osallek.eu4parser.model.save.province.ProvinceBuilding;
 import fr.osallek.eu4parser.model.save.province.SaveProvince;
+import org.apache.commons.lang3.StringUtils;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 
 
 public class ProvinceDTO extends SimpleProvinceDTO {
@@ -46,7 +48,8 @@ public class ProvinceDTO extends SimpleProvinceDTO {
         if (province.getHistory() != null) {
             this.history.addAll(province.getHistory().getEvents().stream().map(ProvinceHistoryDTO::new).toList());
             this.history.add(new ProvinceHistoryDTO(province.getHistory()));
-            this.history.sort(Comparator.comparing(ProvinceHistoryDTO::getDate));
+            this.history.removeIf(Predicate.not(ProvinceHistoryDTO::notEmpty));
+            this.history.sort(ProvinceHistoryDTO.COMPARATOR);
         }
     }
 
@@ -104,12 +107,7 @@ public class ProvinceDTO extends SimpleProvinceDTO {
 
     @JsonIgnore
     public void addOwner(LocalDate date, String tag) {
-        this.history.stream().filter(h -> date.equals(h.getDate())).findFirst().ifPresentOrElse(history -> {
-            history.setOwner(tag);
-            history.setController(tag);
-        }, () -> {
-            this.history.add(new ProvinceHistoryDTO(date, tag, tag));
-            this.history.sort(Comparator.comparing(ProvinceHistoryDTO::getDate));
-        });
+        this.history.add(new ProvinceHistoryDTO(date, tag, tag));
+        this.history.sort(ProvinceHistoryDTO.COMPARATOR);
     }
 }

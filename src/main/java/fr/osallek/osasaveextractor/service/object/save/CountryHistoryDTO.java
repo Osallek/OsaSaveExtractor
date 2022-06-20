@@ -1,12 +1,9 @@
 package fr.osallek.osasaveextractor.service.object.save;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import fr.osallek.clausewitzparser.common.ClausewitzUtils;
-import fr.osallek.eu4parser.model.Color;
-import fr.osallek.eu4parser.model.Power;
-import fr.osallek.eu4parser.model.save.country.Heir;
-import fr.osallek.eu4parser.model.save.country.Monarch;
-import fr.osallek.eu4parser.model.save.country.Queen;
 import fr.osallek.eu4parser.model.save.country.SaveCountryHistoryEvent;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -34,12 +31,6 @@ public class CountryHistoryDTO {
     private final String changedCountryAdjectiveFrom;
 
     private final ColorDTO changedCountryMapcolorFrom;
-
-    private final Integer milTech;
-
-    private final Integer admTech;
-
-    private final Integer dipTech;
 
     private final String addGovernmentReform;
 
@@ -93,9 +84,6 @@ public class CountryHistoryDTO {
         this.changedCountryNameFrom = event.getChangedCountryNameFrom();
         this.changedCountryAdjectiveFrom = event.getChangedCountryAdjectiveFrom();
         this.changedCountryMapcolorFrom = event.getChangedCountryMapcolorFrom() == null ? null : new ColorDTO(event.getChangedCountryMapcolorFrom());
-        this.milTech = event.getMilTech();
-        this.admTech = event.getAdmTech();
-        this.dipTech = event.getDipTech();
         this.addGovernmentReform = ClausewitzUtils.removeQuotes(event.getAddGovernmentReform());
         this.primaryCulture = event.getPrimaryCulture();
         this.government = event.getGovernment();
@@ -116,6 +104,41 @@ public class CountryHistoryDTO {
         this.union = event.getUnion();
         this.tradePort = event.getTradePort();
         this.elector = event.getElector();
+    }
+
+    @JsonIgnore
+    public boolean notEmpty() {
+        return this.date != null ||
+               this.abolishedSerfdom != null ||
+               this.leader != null ||
+               this.ideasLevel != null ||
+               this.addAcceptedCultures != null ||
+               this.removeAcceptedCultures != null ||
+               this.governmentRank != null ||
+               this.capital != null ||
+               this.changedCountryNameFrom != null ||
+               this.changedCountryAdjectiveFrom != null ||
+               this.changedCountryMapcolorFrom != null ||
+               this.addGovernmentReform != null ||
+               this.primaryCulture != null ||
+               this.government != null ||
+               this.religion != null ||
+               this.secondaryReligion != null ||
+               this.technologyGroup != null ||
+               this.unitType != null ||
+               this.changedTagFrom != null ||
+               this.religiousSchool != null ||
+               this.setCountryFlag != null ||
+               this.decision != null ||
+               this.queen != null ||
+               this.monarchConsort != null ||
+               this.monarch != null ||
+               this.monarchHeir != null ||
+               this.heir != null ||
+               this.monarchForeignHeir != null ||
+               this.union != null ||
+               this.tradePort != null ||
+               this.elector != null;
     }
 
     public LocalDate getDate() {
@@ -160,18 +183,6 @@ public class CountryHistoryDTO {
 
     public ColorDTO getChangedCountryMapcolorFrom() {
         return changedCountryMapcolorFrom;
-    }
-
-    public Integer getMilTech() {
-        return milTech;
-    }
-
-    public Integer getAdmTech() {
-        return admTech;
-    }
-
-    public Integer getDipTech() {
-        return dipTech;
     }
 
     public String getAddGovernmentReform() {

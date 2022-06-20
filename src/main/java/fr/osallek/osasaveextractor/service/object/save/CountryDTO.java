@@ -17,6 +17,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -153,6 +154,10 @@ public class CountryDTO {
     private final double innovativeness;
 
     private final List<CountryHistoryDTO> history = new ArrayList<>();
+
+    private final boolean alive;
+
+    private final int nbInstitutions;
 
     public CountryDTO(SaveCountry country, Diplomacy diplomacy) {
         this.tag = country.getTag();
@@ -321,10 +326,13 @@ public class CountryDTO {
         this.sailors = NumbersUtils.doubleToInt(NumbersUtils.doubleOrDefault(country.getSailors()) * 1000);
         this.losses = country.getLosses();
         this.innovativeness = NumbersUtils.doubleOrDefault(country.getInnovativeness());
+        this.alive = !country.getContinents().isEmpty();
+        this.nbInstitutions = (int) country.getNbEmbracedInstitutions();
 
         if (country.getHistory() != null) {
             this.history.addAll(country.getHistory().getEvents().stream().map(CountryHistoryDTO::new).toList());
             this.history.add(new CountryHistoryDTO(country.getHistory()));
+            this.history.removeIf(Predicate.not(CountryHistoryDTO::notEmpty));
             this.history.sort(Comparator.comparing(CountryHistoryDTO::getDate));
         }
     }
@@ -587,5 +595,13 @@ public class CountryDTO {
 
     public List<CountryHistoryDTO> getHistory() {
         return history;
+    }
+
+    public boolean isAlive() {
+        return alive;
+    }
+
+    public int getNbInstitutions() {
+        return nbInstitutions;
     }
 }

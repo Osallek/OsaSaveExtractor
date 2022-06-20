@@ -1,12 +1,24 @@
 package fr.osallek.osasaveextractor.service.object.save;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.model.save.province.SaveProvinceHistoryEvent;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
 public class ProvinceHistoryDTO {
+
+    public static final Comparator<ProvinceHistoryDTO> COMPARATOR = (o1, o2) -> {
+        int compare = Comparator.comparing(ProvinceHistoryDTO::getDate).compare(o1, o2);
+
+        return compare != 0 ? compare
+                            : Comparator.comparing(ProvinceHistoryDTO::getFakeOwner, Comparator.nullsFirst(Comparator.naturalOrder())).compare(o1, o2);
+    };
 
     private final LocalDate date;
 
@@ -48,6 +60,8 @@ public class ProvinceHistoryDTO {
 
     private String owner;
 
+    private final String fakeOwner;
+
     private String controller;
 
     private final List<String> discoveredBy;
@@ -80,6 +94,7 @@ public class ProvinceHistoryDTO {
         this.nativeHostileness = event.getNativeHostileness();
         this.nativeFerocity = event.getNativeFerocity();
         this.nativeSize = event.getNativeSize();
+        this.fakeOwner = event.getFakeOwner();
         this.owner = event.getOwner();
         this.controller = event.getController();
         this.discoveredBy = event.getDiscoveredBy();
@@ -93,6 +108,7 @@ public class ProvinceHistoryDTO {
         this.date = date;
         this.owner = owner;
         this.controller = controller;
+        this.fakeOwner = null;
         this.capital = null;
         this.colonySize = null;
         this.unrest = null;
@@ -116,6 +132,35 @@ public class ProvinceHistoryDTO {
         this.religion = null;
         this.isCity = null;
         this.buildings = null;
+    }
+
+    @JsonIgnore
+    public boolean notEmpty() {
+        return this.owner != null ||
+               this.controller != null ||
+               this.capital != null ||
+               this.colonySize != null ||
+               this.unrest != null ||
+               CollectionUtils.isNotEmpty(this.addCores) ||
+               CollectionUtils.isNotEmpty(this.addClaims) ||
+               CollectionUtils.isNotEmpty(this.removeCores) ||
+               CollectionUtils.isNotEmpty(this.removeClaims) ||
+               this.hre != null ||
+               this.baseTax != null ||
+               this.baseProduction != null ||
+               this.baseManpower != null ||
+               this.tradeGood != null ||
+               this.name != null ||
+               this.tribalOwner != null ||
+               this.advisor != null ||
+               this.nativeHostileness != null ||
+               this.nativeFerocity != null ||
+               this.nativeSize != null ||
+               CollectionUtils.isNotEmpty(this.discoveredBy) ||
+               this.culture != null ||
+               this.religion != null ||
+               this.isCity != null ||
+               MapUtils.isNotEmpty(this.buildings);
     }
 
     public LocalDate getDate() {
@@ -200,6 +245,11 @@ public class ProvinceHistoryDTO {
 
     public void setOwner(String owner) {
         this.owner = owner;
+    }
+
+    @JsonIgnore
+    public String getFakeOwner() {
+        return fakeOwner;
     }
 
     public String getController() {

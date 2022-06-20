@@ -1,6 +1,9 @@
 package fr.osallek.osasaveextractor.service.object.save;
 
 import fr.osallek.eu4parser.model.save.Save;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
@@ -8,8 +11,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 
 public class SaveDTO {
 
@@ -47,6 +48,8 @@ public class SaveDTO {
 
     private final List<Integer> institutions;
 
+    private final DiplomacyDTO diplomacy;
+
     public SaveDTO(Save save) {
         this.id = UUID.randomUUID().toString();
         this.name = save.getName();
@@ -78,9 +81,18 @@ public class SaveDTO {
             countryDTO.getHistory()
                       .stream()
                       .filter(history -> StringUtils.isNotBlank(history.getChangedTagFrom()))
-                      .forEach(history -> this.provinces.stream()
-                                                        .filter(province -> province.isOwnerAt(history.getDate(), history.getChangedTagFrom()))
-                                                        .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag())));
+                      .forEach(history -> {
+                          this.provinces.stream()
+                                        .filter(province -> province.isOwnerAt(history.getDate(), history.getChangedTagFrom()))
+                                        .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
+                          this.provinces.stream() //Add owner when inheriting from decision
+                                        .filter(province -> CollectionUtils.isNotEmpty(province.getHistory())
+                                                            && province.getHistory()
+                                                                       .stream()
+                                                                       .anyMatch(h -> h.getDate().equals(history.getDate())
+                                                                                      && country.getTag().equals(h.getFakeOwner())))
+                                        .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
+                      });
             return countryDTO;
         }).toList();
         this.cultures = save.getGame().getCultures().stream().map(CultureDTO::new).toList();
@@ -93,6 +105,7 @@ public class SaveDTO {
                                 .map(saveProvince -> saveProvince == null ? 0 : saveProvince.getId())
                                 .toList()
                                 .subList(0, (int) save.getInstitutions().getNbAvailable());
+        this.diplomacy = new DiplomacyDTO(save.getDiplomacy());
     }
 
     public String getId() {
@@ -161,5 +174,9 @@ public class SaveDTO {
 
     public List<Integer> getInstitutions() {
         return institutions;
+    }
+
+    public DiplomacyDTO getDiplomacy() {
+        return diplomacy;
     }
 }
