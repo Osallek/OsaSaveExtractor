@@ -8,8 +8,8 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 public class SaveDTO {
@@ -24,13 +24,13 @@ public class SaveDTO {
 
     private final List<TeamDTO> teams;
 
-    private final SortedSet<ProvinceDTO> provinces;
+    private final SortedSet<ProvinceDTO> provinces = new ConcurrentSkipListSet<>();
 
-    private final SortedSet<SimpleProvinceDTO> oceansProvinces;
+    private final SortedSet<SimpleProvinceDTO> oceansProvinces = new ConcurrentSkipListSet<>();
 
-    private final SortedSet<SimpleProvinceDTO> lakesProvinces;
+    private final SortedSet<SimpleProvinceDTO> lakesProvinces = new ConcurrentSkipListSet<>();
 
-    private final SortedSet<SimpleProvinceDTO> impassableProvinces;
+    private final SortedSet<SimpleProvinceDTO> impassableProvinces = new ConcurrentSkipListSet<>();
 
     private final List<CountryDTO> countries;
 
@@ -57,10 +57,6 @@ public class SaveDTO {
         this.nbProvinces = Collections.max(save.getGame().getProvinces().keySet()); //Get the greatest id
         this.teams = CollectionUtils.isNotEmpty(save.getTeams()) ? save.getTeams().stream().map(TeamDTO::new).toList() : null;
 
-        this.provinces = new TreeSet<>();
-        this.oceansProvinces = new TreeSet<>();
-        this.lakesProvinces = new TreeSet<>();
-        this.impassableProvinces = new TreeSet<>();
         save.getProvinces().values().parallelStream().forEach(province -> {
             if (province.isImpassable()) {
                 this.impassableProvinces.add(new SimpleProvinceDTO(province));
@@ -78,21 +74,19 @@ public class SaveDTO {
         this.countries = save.getCountries().values().parallelStream().map(country -> {
             CountryDTO countryDTO = new CountryDTO(country, save.getDiplomacy());
 
-            countryDTO.getHistory()
-                      .stream()
-                      .filter(history -> StringUtils.isNotBlank(history.getChangedTagFrom()))
-                      .forEach(history -> {
-                          this.provinces.stream()
-                                        .filter(province -> province.isOwnerAt(history.getDate(), history.getChangedTagFrom()))
-                                        .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
-                          this.provinces.stream() //Add owner when inheriting from decision
-                                        .filter(province -> CollectionUtils.isNotEmpty(province.getHistory())
-                                                            && province.getHistory()
-                                                                       .stream()
-                                                                       .anyMatch(h -> h.getDate().equals(history.getDate())
-                                                                                      && country.getTag().equals(h.getFakeOwner())))
-                                        .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
-                      });
+            countryDTO.getHistory().stream().filter(history -> StringUtils.isNotBlank(history.getChangedTagFrom())).forEach(history -> {
+                this.provinces.stream()
+                              .filter(province -> province.isOwnerAt(history.getDate(), history.getChangedTagFrom()))
+                              .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
+                this.provinces.stream() //Add owner when inheriting from decision
+                              .filter(province -> CollectionUtils.isNotEmpty(province.getHistory()) && province.getHistory()
+                                                                                                               .stream()
+                                                                                                               .anyMatch(h -> h.getDate()
+                                                                                                                               .equals(history.getDate())
+                                                                                                                              && country.getTag()
+                                                                                                                                        .equals(h.getFakeOwner())))
+                              .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
+            });
             return countryDTO;
         }).toList();
         this.cultures = save.getGame().getCultures().stream().map(CultureDTO::new).toList();

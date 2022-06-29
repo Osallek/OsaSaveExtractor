@@ -24,10 +24,6 @@ public class ProvinceHistoryDTO {
 
     private final String capital;
 
-    private final Double colonySize;
-
-    private final Double unrest;
-
     private final List<String> addCores;
 
     private final List<String> addClaims;
@@ -77,8 +73,6 @@ public class ProvinceHistoryDTO {
     public ProvinceHistoryDTO(SaveProvinceHistoryEvent event) {
         this.date = event.getDate();
         this.capital = event.getCapital();
-        this.colonySize = event.getColonySize();
-        this.unrest = event.getUnrest();
         this.addCores = event.getAddCores();
         this.addClaims = event.getAddClaims();
         this.removeCores = event.getRemoveCores();
@@ -110,8 +104,6 @@ public class ProvinceHistoryDTO {
         this.controller = controller;
         this.fakeOwner = null;
         this.capital = null;
-        this.colonySize = null;
-        this.unrest = null;
         this.addCores = null;
         this.addClaims = null;
         this.removeCores = null;
@@ -139,8 +131,6 @@ public class ProvinceHistoryDTO {
         return this.owner != null ||
                this.controller != null ||
                this.capital != null ||
-               this.colonySize != null ||
-               this.unrest != null ||
                CollectionUtils.isNotEmpty(this.addCores) ||
                CollectionUtils.isNotEmpty(this.addClaims) ||
                CollectionUtils.isNotEmpty(this.removeCores) ||
@@ -169,14 +159,6 @@ public class ProvinceHistoryDTO {
 
     public String getCapital() {
         return capital;
-    }
-
-    public Double getColonySize() {
-        return colonySize;
-    }
-
-    public Double getUnrest() {
-        return unrest;
     }
 
     public List<String> getAddCores() {

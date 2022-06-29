@@ -32,6 +32,8 @@ public class ProvinceDTO extends SimpleProvinceDTO {
 
     private final List<String> buildings;
 
+    private final Double colonySize;
+
     private final List<ProvinceHistoryDTO> history = new ArrayList<>();
 
     public ProvinceDTO(SaveProvince province) {
@@ -44,6 +46,7 @@ public class ProvinceDTO extends SimpleProvinceDTO {
         this.isCity = province.isCity();
         this.improvements = province.getImproveCount();
         this.buildings = province.getBuildings().stream().map(ProvinceBuilding::getName).collect(Collectors.toList());
+        this.colonySize = province.getColonySize();
 
         if (province.getHistory() != null) {
             this.history.addAll(province.getHistory().getEvents().stream().map(ProvinceHistoryDTO::new).toList());
@@ -87,6 +90,10 @@ public class ProvinceDTO extends SimpleProvinceDTO {
 
     public List<String> getBuildings() {
         return buildings;
+    }
+
+    public Double getColonySize() {
+        return colonySize;
     }
 
     @JsonIgnore
