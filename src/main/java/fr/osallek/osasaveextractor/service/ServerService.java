@@ -1,10 +1,11 @@
 package fr.osallek.osasaveextractor.service;
 
-import fr.osallek.osasaveextractor.service.object.ServerSave;
+import fr.osallek.osasaveextractor.service.object.save.SaveDTO;
+import fr.osallek.osasaveextractor.service.object.server.AssetsToSendDTO;
+import fr.osallek.osasaveextractor.service.object.server.ServerSave;
+import fr.osallek.osasaveextractor.service.object.server.UploadResponseDTO;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -42,14 +43,19 @@ public class ServerService {
         return saves;
     }
 
-    public CompletableFuture<String> uploadData(Path saveFile, Path colorsFile, Path provinceMapFile) {
+    public CompletableFuture<UploadResponseDTO> uploadData(SaveDTO saveFile) {
         try {
             Thread.sleep(2000L);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
-        return CompletableFuture.completedFuture("http://localhost:8080/saves/" + UUID.randomUUID()); //Todo
+        return CompletableFuture.completedFuture(new UploadResponseDTO(saveFile)); //Todo
+    }
+
+    public CompletableFuture<Boolean> uploadAssets(AssetsToSendDTO assets) {
+        //Todo zip and send
+        return CompletableFuture.completedFuture(true);
     }
 
     private LocalDateTime getRandomDateTime() {

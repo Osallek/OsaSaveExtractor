@@ -8,7 +8,7 @@ import fr.osallek.osasaveextractor.controller.object.LocalSaveListCell;
 import fr.osallek.osasaveextractor.controller.object.ServerSaveListCell;
 import fr.osallek.osasaveextractor.service.Eu4Service;
 import fr.osallek.osasaveextractor.service.ServerService;
-import fr.osallek.osasaveextractor.service.object.ServerSave;
+import fr.osallek.osasaveextractor.service.object.server.ServerSave;
 import javafx.application.Application;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;

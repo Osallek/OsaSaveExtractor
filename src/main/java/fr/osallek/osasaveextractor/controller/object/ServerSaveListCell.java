@@ -1,7 +1,7 @@
 package fr.osallek.osasaveextractor.controller.object;
 
 import fr.osallek.osasaveextractor.service.Eu4Service;
-import fr.osallek.osasaveextractor.service.object.ServerSave;
+import fr.osallek.osasaveextractor.service.object.server.ServerSave;
 import javafx.scene.control.ListCell;
 import org.springframework.context.MessageSource;
 

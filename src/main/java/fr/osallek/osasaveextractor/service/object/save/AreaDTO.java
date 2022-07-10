@@ -18,7 +18,7 @@ public class AreaDTO {
     private final Map<String, CountryStateDTO> states;
 
     public AreaDTO(SaveArea area) {
-        this.provinces = area.getProvinces().stream().map(SaveProvince::getId).collect(Collectors.toList());
+        this.provinces = area.getProvinces().stream().map(SaveProvince::getId).toList();
         this.investments = MapUtils.isEmpty(area.getInvestments()) ? null :
                            area.getInvestments()
                                .entrySet()
@@ -27,7 +27,7 @@ public class AreaDTO {
                                                                                                          .getInvestments()
                                                                                                          .stream()
                                                                                                          .map(Investment::getName)
-                                                                                                         .collect(Collectors.toList())));
+                                                                                                         .toList()));
         this.states = MapUtils.isEmpty(area.getCountriesStates()) ? null :
                       area.getCountriesStates()
                           .entrySet()

@@ -45,7 +45,7 @@ public class ProvinceDTO extends SimpleProvinceDTO {
         this.institutions = province.getInstitutionsProgress();
         this.isCity = province.isCity();
         this.improvements = province.getImproveCount();
-        this.buildings = province.getBuildings().stream().map(ProvinceBuilding::getName).collect(Collectors.toList());
+        this.buildings = province.getBuildings().stream().map(ProvinceBuilding::getName).toList();
         this.colonySize = province.getColonySize();
 
         if (province.getHistory() != null) {

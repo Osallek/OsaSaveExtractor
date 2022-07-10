@@ -12,8 +12,8 @@ public class DiplomacyDTO {
     private final List<RelationDTO> alliances;
 
     public DiplomacyDTO(Diplomacy diplomacy) {
-        this.dependencies = diplomacy.getDependencies().stream().map(DependencyDTO::new).collect(Collectors.toList());
-        this.alliances = diplomacy.getAlliances().stream().map(RelationDTO::new).collect(Collectors.toList());
+        this.dependencies = diplomacy.getDependencies().stream().map(DependencyDTO::new).toList();
+        this.alliances = diplomacy.getAlliances().stream().map(RelationDTO::new).toList();
     }
 
     public List<DependencyDTO> getDependencies() {

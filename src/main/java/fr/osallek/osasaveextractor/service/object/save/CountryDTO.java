@@ -3,6 +3,7 @@ package fr.osallek.osasaveextractor.service.object.save;
 import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.common.NumbersUtils;
 import fr.osallek.eu4parser.model.game.Culture;
+import fr.osallek.eu4parser.model.save.Save;
 import fr.osallek.eu4parser.model.save.country.Losses;
 import fr.osallek.eu4parser.model.save.country.PowerProjection;
 import fr.osallek.eu4parser.model.save.country.PowerSpent;
@@ -10,6 +11,10 @@ import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.eu4parser.model.save.diplomacy.DatableRelation;
 import fr.osallek.eu4parser.model.save.diplomacy.Diplomacy;
 import fr.osallek.eu4parser.model.save.diplomacy.Subsidies;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,10 +24,8 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.tuple.Pair;
 
-public class CountryDTO {
+public class CountryDTO extends ImageLocalised {
 
     private final String tag;
 
@@ -159,9 +162,10 @@ public class CountryDTO {
 
     private final int nbInstitutions;
 
-    public CountryDTO(SaveCountry country, Diplomacy diplomacy) {
+    public CountryDTO(Save save, SaveCountry country, Diplomacy diplomacy) {
+        super(save.getGame().getLocalisation(country.getTag()), country.getFlagFile());
         this.tag = country.getTag();
-        this.customName = country.getCustomName();
+        this.customName = ClausewitzUtils.removeQuotes(StringUtils.firstNonBlank(country.getCustomName(), country.getName()));
         this.players = CollectionUtils.isEmpty(country.getPlayers()) ? null : country.getPlayers().stream().map(ClausewitzUtils::removeQuotes).toList();
         this.greatPowerRank = country.getGreatPowerRank();
         this.flags = country.getFlags() == null ? null : country.getFlags().getAll();
@@ -190,6 +194,7 @@ public class CountryDTO {
         this.nationSizeStatistics = country.getNationSizeStatistics();
         this.scoreStatistics = country.getScoreStatistics();
         this.inflationStatistics = country.getInflationStatistics();
+
         this.alliances = diplomacy.getAlliances()
                                   .stream()
                                   .filter(r -> r.getFirst().getTag().equals(this.tag))
@@ -207,13 +212,13 @@ public class CountryDTO {
                                    .filter(r -> r.getFirst().getTag().equals(this.tag))
                                    .map(DatableRelation::getSecond)
                                    .map(SaveCountry::getTag)
-                                   .collect(Collectors.toList());
+                                   .toList();
         this.guarantedBy = diplomacy.getGuarantees()
                                     .stream()
                                     .filter(r -> r.getSecond().getTag().equals(this.tag))
                                     .map(DatableRelation::getFirst)
                                     .map(SaveCountry::getTag)
-                                    .collect(Collectors.toList());
+                                    .toList();
         this.knowledgeSharing = diplomacy.getKnowledgeSharing()
                                          .stream()
                                          .filter(r -> r.getFirst().getTag().equals(this.tag))
@@ -253,31 +258,31 @@ public class CountryDTO {
                                             .filter(r -> r.getFirst().getTag().equals(this.tag))
                                             .map(DatableRelation::getSecond)
                                             .map(SaveCountry::getTag)
-                                            .collect(Collectors.toList());
+                                            .toList();
         this.supportIndependenceBy = diplomacy.getSupportIndependence()
                                               .stream()
                                               .filter(r -> r.getSecond().getTag().equals(this.tag))
                                               .map(DatableRelation::getFirst)
                                               .map(SaveCountry::getTag)
-                                              .collect(Collectors.toList());
+                                              .toList();
         this.transferTradePowers = diplomacy.getTransferTradePowers()
                                             .stream()
                                             .filter(r -> r.getFirst().getTag().equals(this.tag))
                                             .map(DatableRelation::getSecond)
                                             .map(SaveCountry::getTag)
-                                            .collect(Collectors.toList());
+                                            .toList();
         this.transferTradePowersBy = diplomacy.getTransferTradePowers()
                                               .stream()
                                               .filter(r -> r.getSecond().getTag().equals(this.tag))
                                               .map(DatableRelation::getFirst)
                                               .map(SaveCountry::getTag)
-                                              .collect(Collectors.toList());
+                                              .toList();
         this.warReparations = diplomacy.getWarReparations()
                                        .stream()
                                        .filter(r -> r.getFirst().getTag().equals(this.tag))
                                        .map(DatableRelation::getSecond)
                                        .map(SaveCountry::getTag)
-                                       .collect(Collectors.toList());
+                                       .toList();
         this.warReparationsBy = diplomacy.getWarReparations()
                                          .stream()
                                          .filter(r -> r.getSecond().getTag().equals(this.tag))
@@ -290,13 +295,13 @@ public class CountryDTO {
                                  .filter(r -> r.getFirst().getTag().equals(this.tag))
                                  .map(DatableRelation::getSecond)
                                  .map(SaveCountry::getTag)
-                                 .collect(Collectors.toList());
+                                 .toList();
         this.warningsBy = diplomacy.getWarnings()
                                    .stream()
                                    .filter(r -> r.getSecond().getTag().equals(this.tag))
                                    .map(DatableRelation::getFirst)
                                    .map(SaveCountry::getTag)
-                                   .collect(Collectors.toList());
+                                   .toList();
         this.atWarWith = country.getActiveWars()
                                 .stream()
                                 .map(war -> war.getOtherSide(country))
@@ -306,6 +311,7 @@ public class CountryDTO {
                                 .map(SaveCountry::getTag)
                                 .distinct()
                                 .toList();
+
         this.prestige = country.getPrestige();
         this.corruption = country.getCorruption();
         this.stability = country.getStability();

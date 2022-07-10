@@ -1,4 +1,4 @@
-package fr.osallek.osasaveextractor.service.object;
+package fr.osallek.osasaveextractor.service.object.server;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;

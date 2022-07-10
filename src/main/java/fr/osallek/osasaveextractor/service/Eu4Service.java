@@ -6,12 +6,18 @@ import fr.osallek.eu4parser.Eu4Parser;
 import fr.osallek.eu4parser.model.LauncherSettings;
 import fr.osallek.eu4parser.model.game.Game;
 import fr.osallek.eu4parser.model.game.Province;
+import fr.osallek.eu4parser.model.game.Religion;
 import fr.osallek.eu4parser.model.save.Save;
+import fr.osallek.osasaveextractor.common.Constants;
 import fr.osallek.osasaveextractor.service.object.ProgressState;
 import fr.osallek.osasaveextractor.service.object.ProgressStep;
-import fr.osallek.osasaveextractor.service.object.ServerSave;
 import fr.osallek.osasaveextractor.service.object.save.SaveDTO;
+import fr.osallek.osasaveextractor.service.object.server.AssetsDTO;
+import fr.osallek.osasaveextractor.service.object.server.AssetsToSendDTO;
+import fr.osallek.osasaveextractor.service.object.server.ServerSave;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -28,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,7 +42,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -75,7 +81,7 @@ public class Eu4Service {
                 //Todo filter ironman
                 return stream.filter(path -> path.getFileName().toString().endsWith(".eu4"))
                              .sorted(Comparator.comparing(t -> t.toFile().lastModified(), Comparator.reverseOrder()))
-                             .collect(Collectors.toList());
+                             .toList();
             }
         }
 
@@ -116,10 +122,16 @@ public class Eu4Service {
 
                 Path tmpFolder = Path.of(FileUtils.getTempDirectoryPath(), UUID.randomUUID().toString());
                 FileUtils.forceMkdir(tmpFolder.toFile());
-                Path provinceMapFile = tmpFolder.resolve("provinces.png");
-                ImageIO.write(ImageIO.read(new File(game.getProvincesImage().getAbsolutePath())), "PNG", provinceMapFile.toFile());
 
-                Path colorsFile = tmpFolder.resolve("colors.png");
+                Path provinceFile = Path.of(game.getProvincesImage().getAbsolutePath());
+                Optional<String> provinceChecksum = Constants.getFileChecksum(provinceFile.toFile());
+
+                if (provinceChecksum.isEmpty()) {
+                    throw new RuntimeException("Could not get hash of provinces image");
+                }
+
+                Path colorsFile = tmpFolder.resolve("colors").resolve("colors.png");
+                FileUtils.forceMkdirParent(colorsFile.toFile());
                 BufferedImage colorsImage = new BufferedImage(game.getProvinces().size(), 1, BufferedImage.TYPE_INT_ARGB);
                 Graphics2D colorsImageGraphics = colorsImage.createGraphics();
                 int i = 0;
@@ -130,22 +142,113 @@ public class Eu4Service {
                 }
                 ImageIO.write(colorsImage, "PNG", colorsFile.toFile());
 
-                Path dataFile = tmpFolder.resolve("data.json");
-                this.objectMapper.writeValue(dataFile.toFile(), new SaveDTO(save));
-                this.state.setStep(ProgressStep.SENDING_DATA);
+                Optional<String> colorsChecksum = Constants.getFileChecksum(colorsFile);
+                if (colorsChecksum.isPresent()) {
+                    File source = colorsFile.toFile();
+                    colorsFile = colorsFile.resolveSibling(colorsChecksum.get() + ".png");
+                    FileUtils.moveFile(source, colorsFile.toFile());
+                } else {
+                    throw new RuntimeException("Could not get hash of colors image");
+                }
 
-                return this.serverService.uploadData(dataFile, colorsFile, provinceMapFile)
+                Path goodsTmpFolder = tmpFolder.resolve("goods");
+                FileUtils.forceMkdir(goodsTmpFolder.toFile());
+                save.getGame().getTradeGoods().forEach(tradeGood -> {
+                    try {
+                        tradeGood.writeImageTo(goodsTmpFolder.resolve(tradeGood.getName() + ".png"));
+
+                        Optional<String> goodChecksum = Constants.getFileChecksum(tradeGood.getWritenTo());
+                        if (goodChecksum.isPresent()) {
+                            Path source = tradeGood.getWritenTo();
+                            tradeGood.setWritenTo(source.resolveSibling(goodChecksum.get() + ".png"));
+                            FileUtils.copyFile(source.toFile(), tradeGood.getWritenTo().toFile());
+                            FileUtils.deleteQuietly(source.toFile());
+                        } else {
+                            LOGGER.warn("Could not get hash for trade good {}", tradeGood.getName());
+                        }
+                    } catch (IOException e) {
+                        LOGGER.warn("Could not write trade good file for {}: {}", tradeGood.getName(), e.getMessage(), e);
+                    }
+                });
+
+                Path religionsTmpFolder = tmpFolder.resolve("religions");
+                FileUtils.forceMkdir(religionsTmpFolder.toFile());
+                Map<String, Religion> religions = new HashMap<>();
+                save.getGame().getReligions().stream().filter(religion -> religion.getIcon() != null).forEach(religion -> {
+                    try {
+                        religions.put(religion.getName(), religion);
+                        religion.writeImageTo(religionsTmpFolder.resolve(religion.getName() + ".png"));
+
+                        Optional<String> religionChecksum = Constants.getFileChecksum(religion.getWritenTo());
+                        if (religionChecksum.isPresent()) {
+                            Path source = religion.getWritenTo();
+                            religion.setWritenTo(source.resolveSibling(religionChecksum.get() + ".png"));
+                            FileUtils.copyFile(source.toFile(), religion.getWritenTo().toFile());
+                            FileUtils.deleteQuietly(source.toFile());
+                        } else {
+                            LOGGER.warn("Could not get hash for trade religion {}", religion.getName());
+                        }
+                    } catch (IOException e) {
+                        LOGGER.warn("Could not write trade religion file for {}: {}", religion.getName(), e.getMessage(), e);
+                    }
+                });
+
+                SaveDTO saveDTO = new SaveDTO(save, provinceChecksum.get(), colorsChecksum.get(), religions,
+                                              value -> {
+                                                  this.state.setSubStep(ProgressStep.GENERATING_DATA_COUNTRIES);
+                                                  int progress = ProgressStep.GENERATING_DATA_COUNTRIES.progress;
+                                                  progress += (ProgressStep.GENERATING_DATA_COUNTRIES.next().progress
+                                                               - ProgressStep.GENERATING_DATA_COUNTRIES.progress) * value;
+
+                                                  this.state.setProgress(progress);
+                                              });
+                Path dataFile = tmpFolder.resolve(saveDTO.getId() + ".json");
+                this.objectMapper.writeValue(dataFile.toFile(), saveDTO);
+                this.state.setStep(ProgressStep.SENDING_DATA);
+                this.state.setSubStep(null);
+
+                Path finalColorsFile = colorsFile;
+                return this.serverService.uploadData(saveDTO)
                                          .whenComplete((s, throwable) -> {
                                              if (throwable != null) {
                                                  this.state.setError(true);
                                                  LOGGER.error(throwable.getMessage(), throwable);
 
-                                                 //FileUtils.deleteQuietly(tmpFolder.toFile());
+                                                 //FileUtils.deleteQuietly(tmpFolder.toFile()); //Todo
                                              }
                                          })
-                                         .thenAccept(s -> {
+                                         .thenCompose(response -> {
+                                             if (response.assetsDTO() == null) {
+                                                 return CompletableFuture.completedFuture(response);
+                                             } else {
+                                                 try {
+                                                     return sendMissingAssets(response.assetsDTO(), tmpFolder, save, finalColorsFile, provinceFile, religions)
+                                                             .thenCompose(aBoolean -> {
+                                                                 if (BooleanUtils.toBoolean(aBoolean)) {
+                                                                     return CompletableFuture.completedFuture(response);
+                                                                 } else {
+                                                                     return CompletableFuture.failedStage(
+                                                                             new RuntimeException("An error occurred while sending assets to server"));
+                                                                 }
+                                                             });
+                                                 } catch (IOException e) {
+                                                     return CompletableFuture.failedStage(e);
+                                                 }
+                                             }
+                                         })
+                                         .whenComplete((s, throwable) -> {
+                                             if (throwable != null) {
+                                                 this.state.setError(true);
+                                                 LOGGER.error(throwable.getMessage(), throwable);
+
+                                                 //FileUtils.deleteQuietly(tmpFolder.toFile()); //Todo
+                                             }
+                                         })
+                                         .thenAccept(response -> {
                                              this.state.setStep(ProgressStep.FINISHED);
-                                             this.state.setLink(s);
+                                             this.state.setLink(response.link());
+
+                                             //FileUtils.deleteQuietly(tmpFolder.toFile()); //Todo
                                          });
             } catch (Exception e) {
                 this.state.setError(true);
@@ -153,6 +256,118 @@ public class Eu4Service {
                 throw new RuntimeException(e);
             }
         }).completable().thenCompose(unused -> unused);
+    }
+
+    private CompletableFuture<Boolean> sendMissingAssets(AssetsDTO assets, Path tmpFolder, Save save, Path colorsFile, Path provinceFile,
+                                                         Map<String, Religion> religions) throws IOException {
+        AssetsToSendDTO toSend = new AssetsToSendDTO();
+
+        if (assets.provinces()) {
+            Path provinceMapFile = tmpFolder.resolve("provinces").resolve("provinces.png");
+            FileUtils.forceMkdirParent(provinceMapFile.toFile());
+            ImageIO.write(ImageIO.read(provinceFile.toFile()), "PNG", provinceMapFile.toFile());
+
+            Optional<String> provinceChecksum = Constants.getFileChecksum(provinceFile);
+            if (provinceChecksum.isPresent()) {
+                File source = provinceMapFile.toFile();
+                provinceMapFile = provinceMapFile.resolveSibling(provinceChecksum.get() + ".png");
+                FileUtils.moveFile(source, provinceMapFile.toFile());
+                toSend.setProvinces(provinceMapFile);
+            } else {
+                throw new RuntimeException("Could not get hash of provinces image");
+            }
+        }
+
+        if (assets.colors()) {
+            toSend.setColors(colorsFile);
+        }
+
+        if (CollectionUtils.isNotEmpty(assets.countries())) {
+            Path cPath = tmpFolder.resolve("flags");
+            save.getCountries().values().stream().filter(country -> assets.countries().contains(country.getTag())).forEach(country -> {
+                if (country.isCustom()) {
+                    //Todo
+                } else if (country.isColony()) {
+                    //Todo
+                } else if (country.isClientState()) {
+                    //Todo
+                } else if (country.isTradeCity()) {
+                    //Todo
+                } else if (country.isCossackRevolt()) {
+                    //Todo
+                } else if (country.isObserver() || country.isUnknown()) {
+                    //No flag
+                } else {
+                    File file = country.getFlagFile();
+
+                    Constants.getFileChecksum(file)
+                             .ifPresentOrElse(checksum -> {
+                                                  Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                                                  toSend.getCountries().add(cPath.resolve(image));
+                                              },
+                                              () -> LOGGER.error("Could not get hash of country {}", country.getTag()));
+                }
+            });
+        }
+
+        if (CollectionUtils.isNotEmpty(assets.advisors())) {
+            Path cPath = tmpFolder.resolve("advisors");
+            save.getGame().getAdvisors().stream().filter(advisor -> assets.advisors().contains(advisor.getName())).forEach(advisor -> {
+                File file = advisor.getDefaultImage();
+
+                Constants.getFileChecksum(file)
+                         .ifPresentOrElse(checksum -> {
+                                              Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                                              toSend.getAdvisors().add(cPath.resolve(image));
+                                          },
+                                          () -> LOGGER.error("Could not get hash of advisor {}", advisor.getName()));
+            });
+        }
+
+        if (CollectionUtils.isNotEmpty(assets.institutions())) {
+            Path cPath = tmpFolder.resolve("institutions");
+            save.getGame().getInstitutions().stream().filter(institution -> assets.institutions().contains(institution.getName())).forEach(institution -> {
+                File file = institution.getImage();
+
+                Constants.getFileChecksum(file)
+                         .ifPresentOrElse(checksum -> {
+                                              Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                                              toSend.getInstitutions().add(cPath.resolve(image));
+                                          },
+                                          () -> LOGGER.error("Could not get hash of institution {}", institution.getName()));
+            });
+        }
+
+        if (CollectionUtils.isNotEmpty(assets.buildings())) {
+            Path cPath = tmpFolder.resolve("buildings");
+            save.getGame().getBuildings().stream().filter(building -> assets.buildings().contains(building.getName())).forEach(building -> {
+                File file = building.getImage();
+
+                Constants.getFileChecksum(file)
+                         .ifPresentOrElse(checksum -> {
+                                              Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                                              toSend.getBuildings().add(cPath.resolve(image));
+                                          },
+                                          () -> LOGGER.error("Could not get hash of building {}", building.getName()));
+            });
+        }
+
+        if (CollectionUtils.isNotEmpty(assets.religions())) {
+            religions.values()
+                     .stream()
+                     .filter(religion -> assets.religions().contains(religion.getName()))
+                     .forEach(religion -> toSend.getReligions().add(religion.getWritenTo()));
+        }
+
+        if (CollectionUtils.isNotEmpty(assets.tradeGoods())) {
+            save.getGame()
+                .getTradeGoods()
+                .stream()
+                .filter(good -> assets.tradeGoods().contains(good.getName()))
+                .forEach(good -> toSend.getGoods().add(good.getWritenTo()));
+        }
+
+        return this.serverService.uploadAssets(toSend);
     }
 
     public LauncherSettings getLauncherSettings() {
