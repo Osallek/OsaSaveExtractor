@@ -163,7 +163,7 @@ public class CountryDTO extends ImageLocalised {
     private final int nbInstitutions;
 
     public CountryDTO(Save save, SaveCountry country, Diplomacy diplomacy) {
-        super(save.getGame().getLocalisation(country.getTag()), country.getFlagFile());
+        super(save.getGame().getLocalisation(country.getTag()), country.getWritenTo() != null ? country.getWritenTo().toFile() : country.getFlagFile());
         this.tag = country.getTag();
         this.customName = ClausewitzUtils.removeQuotes(StringUtils.firstNonBlank(country.getCustomName(), country.getName()));
         this.players = CollectionUtils.isEmpty(country.getPlayers()) ? null : country.getPlayers().stream().map(ClausewitzUtils::removeQuotes).toList();

@@ -8,6 +8,7 @@ import fr.osallek.eu4parser.model.game.Game;
 import fr.osallek.eu4parser.model.game.Province;
 import fr.osallek.eu4parser.model.game.Religion;
 import fr.osallek.eu4parser.model.save.Save;
+import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.osasaveextractor.common.Constants;
 import fr.osallek.osasaveextractor.service.object.ProgressState;
 import fr.osallek.osasaveextractor.service.object.ProgressStep;
@@ -161,8 +162,7 @@ public class Eu4Service {
                         if (goodChecksum.isPresent()) {
                             Path source = tradeGood.getWritenTo();
                             tradeGood.setWritenTo(source.resolveSibling(goodChecksum.get() + ".png"));
-                            FileUtils.copyFile(source.toFile(), tradeGood.getWritenTo().toFile());
-                            FileUtils.deleteQuietly(source.toFile());
+                            FileUtils.moveFile(source.toFile(), tradeGood.getWritenTo().toFile());
                         } else {
                             LOGGER.warn("Could not get hash for trade good {}", tradeGood.getName());
                         }
@@ -183,13 +183,36 @@ public class Eu4Service {
                         if (religionChecksum.isPresent()) {
                             Path source = religion.getWritenTo();
                             religion.setWritenTo(source.resolveSibling(religionChecksum.get() + ".png"));
-                            FileUtils.copyFile(source.toFile(), religion.getWritenTo().toFile());
-                            FileUtils.deleteQuietly(source.toFile());
+                            FileUtils.moveFile(source.toFile(), religion.getWritenTo().toFile());
                         } else {
                             LOGGER.warn("Could not get hash for trade religion {}", religion.getName());
                         }
                     } catch (IOException e) {
                         LOGGER.warn("Could not write trade religion file for {}: {}", religion.getName(), e.getMessage(), e);
+                    }
+                });
+
+                Path flagsFolder = tmpFolder.resolve("flags");
+                FileUtils.forceMkdir(flagsFolder.toFile());
+                save.getCountries().values().stream().filter(SaveCountry::isAlive).forEach(country -> {
+                    try {
+                        BufferedImage image = country.getCustomFlagImage();
+                        if (image == null) {
+                            return;
+                        }
+
+                        country.writeImageTo(flagsFolder.resolve(country.getTag() + ".png"), image);
+
+                        Optional<String> flagChecksum = Constants.getFileChecksum(country.getWritenTo());
+                        if (flagChecksum.isPresent()) {
+                            Path source = country.getWritenTo();
+                            country.setWritenTo(source.resolveSibling(flagChecksum.get() + ".png"));
+                            FileUtils.moveFile(source.toFile(), country.getWritenTo().toFile());
+                        } else {
+                            LOGGER.warn("Could not get hash for country {}", country.getTag());
+                        }
+                    } catch (IOException e) {
+                        LOGGER.warn("Could not write country file for {}: {}", country.getTag(), e.getMessage(), e);
                     }
                 });
 
@@ -285,18 +308,10 @@ public class Eu4Service {
         if (CollectionUtils.isNotEmpty(assets.countries())) {
             Path cPath = tmpFolder.resolve("flags");
             save.getCountries().values().stream().filter(country -> assets.countries().contains(country.getTag())).forEach(country -> {
-                if (country.isCustom()) {
-                    //Todo
-                } else if (country.isColony()) {
-                    //Todo
-                } else if (country.isClientState()) {
-                    //Todo
-                } else if (country.isTradeCity()) {
-                    //Todo
-                } else if (country.isCossackRevolt()) {
-                    //Todo
-                } else if (country.isObserver() || country.isUnknown()) {
-                    //No flag
+                if (country.useCustomFlagImage()) {
+                    if (country.getWritenTo() != null) {
+                        toSend.getCountries().add(country.getWritenTo());
+                    }
                 } else {
                     File file = country.getFlagFile();
 
