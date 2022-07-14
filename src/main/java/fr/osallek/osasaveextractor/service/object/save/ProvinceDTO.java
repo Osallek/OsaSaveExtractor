@@ -24,6 +24,8 @@ public class ProvinceDTO extends SimpleProvinceDTO {
 
     private final Double devastation;
 
+    private final Double autonomy;
+
     private final List<Double> institutions;
 
     private final boolean isCity;
@@ -42,6 +44,7 @@ public class ProvinceDTO extends SimpleProvinceDTO {
         this.baseProduction = province.getBaseProduction();
         this.baseTax = province.getBaseTax();
         this.devastation = province.getDevastation();
+        this.autonomy = province.getLocalAutonomy();
         this.institutions = province.getInstitutionsProgress();
         this.isCity = province.isCity();
         this.improvements = province.getImproveCount();
@@ -70,6 +73,10 @@ public class ProvinceDTO extends SimpleProvinceDTO {
 
     public Double getDevastation() {
         return devastation;
+    }
+
+    public Double getAutonomy() {
+        return autonomy;
     }
 
     public List<Double> getInstitutions() {

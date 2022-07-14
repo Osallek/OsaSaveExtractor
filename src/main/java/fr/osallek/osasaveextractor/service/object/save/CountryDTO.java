@@ -11,10 +11,6 @@ import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.eu4parser.model.save.diplomacy.DatableRelation;
 import fr.osallek.eu4parser.model.save.diplomacy.Diplomacy;
 import fr.osallek.eu4parser.model.save.diplomacy.Subsidies;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,6 +20,9 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class CountryDTO extends ImageLocalised {
 
