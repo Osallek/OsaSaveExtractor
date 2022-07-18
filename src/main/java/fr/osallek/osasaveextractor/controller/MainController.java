@@ -1,14 +1,22 @@
 package fr.osallek.osasaveextractor.controller;
 
 import fr.osallek.osasaveextractor.OsaSaveExtractorApplication;
+import fr.osallek.osasaveextractor.common.Constants;
+import fr.osallek.osasaveextractor.controller.object.AutoCompleteTextField;
 import fr.osallek.osasaveextractor.controller.object.BootstrapColumn;
 import fr.osallek.osasaveextractor.controller.object.BootstrapPane;
 import fr.osallek.osasaveextractor.controller.object.BootstrapRow;
 import fr.osallek.osasaveextractor.controller.object.LocalSaveListCell;
-import fr.osallek.osasaveextractor.controller.object.ServerSaveListCell;
 import fr.osallek.osasaveextractor.service.Eu4Service;
 import fr.osallek.osasaveextractor.service.ServerService;
 import fr.osallek.osasaveextractor.service.object.server.ServerSave;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Locale;
+import java.util.SortedSet;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import javafx.application.Application;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
@@ -30,16 +38,12 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.kordamp.bootstrapfx.scene.layout.Panel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Locale;
 
 @Component
 public class MainController {
@@ -70,7 +74,9 @@ public class MainController {
 
     private ReadOnlyObjectProperty<Path> localSave;
 
-    private ReadOnlyObjectProperty<ServerSave> serverSave;
+    private AutoCompleteTextField<ServerSave> serverSavesField;
+
+    private BooleanProperty serverSavesInvalid = new SimpleBooleanProperty();
 
     private final BooleanProperty loading = new SimpleBooleanProperty(false);
 
@@ -158,18 +164,31 @@ public class MainController {
         serverSavesTitleLabel.getStyleClass().addAll("h5", "b");
         serverSavesPanel.setHeading(serverSavesTitleLabel);
 
-        List<ServerSave> serverSaves = this.serverService.getSaves();
+        SortedSet<ServerSave> serverSaves = this.serverService.getSaves();
 
         if (CollectionUtils.isNotEmpty(serverSaves)) {
-            ComboBox<ServerSave> serverSavesBox = new ComboBox<>(FXCollections.observableArrayList(serverSaves));
-            serverSavesBox.setVisibleRowCount(20);
-            serverSavesBox.setCellFactory(param -> new ServerSaveListCell(this.messageSource, this.eu4Service));
-            serverSavesBox.setButtonCell(new ServerSaveListCell(this.messageSource, this.eu4Service));
-            serverSavesBox.setPromptText(this.messageSource.getMessage("ose.server-saves.choose", null,
-                                                                       Locale.getDefault()));
-            serverSavesBox.disableProperty().bind(this.loading);
-            this.serverSave = serverSavesBox.getSelectionModel().selectedItemProperty();
-            serverSavesPanel.setBody(serverSavesBox);
+
+            this.serverSavesField = new AutoCompleteTextField<>(serverSaves.stream()
+                                                                           .collect(Collectors.toMap(s -> s.toString(this.messageSource), Function.identity())));
+            this.serverSavesField.disableProperty().bind(this.loading);
+
+            Label label = new Label(this.messageSource.getMessage("ose.server-saves.format", null, Locale.getDefault()));
+            label.visibleProperty().bind(this.serverSavesInvalid);
+            label.setTextFill(Color.RED);
+
+            this.serverSavesField.textProperty()
+                                 .addListener((observable, oldValue, newValue) ->
+                                                      this.serverSavesInvalid.set(StringUtils.isNotBlank(newValue)
+                                                                                  && serverSaves.stream()
+                                                                                                .noneMatch(serverSave -> newValue.equals(serverSave.toString(this.messageSource)))
+                                                                                  && !Constants.UUID_PATTERN.matcher(newValue).matches()));
+
+            VBox vBox = new VBox();
+            vBox.setSpacing(8);
+            vBox.getChildren().add(this.serverSavesField);
+            vBox.getChildren().add(label);
+
+            serverSavesPanel.setBody(vBox);
         } else {
             serverSavesPanel.setBody(new Text(this.messageSource.getMessage("ose.saves.none", null,
                                                                             Locale.getDefault())));
@@ -180,21 +199,23 @@ public class MainController {
         BootstrapRow actionRow = new BootstrapRow(true);
         Button submitButton = new Button(this.messageSource.getMessage("ose.analyse", null, Locale.getDefault()));
         submitButton.getStyleClass().addAll("btn", "btn-primary");
-        submitButton.disableProperty().bind(this.localSave.isNull().or(this.loading));
+        submitButton.disableProperty().bind(this.localSave.isNull().or(this.loading).or(this.serverSavesInvalid));
         submitButton.setOnAction(event -> {
             this.errorText.setVisible(false);
             this.finishedButton.setVisible(false);
             this.loading.setValue(true);
             this.progressVBox.setVisible(true);
-            this.eu4Service.parseSave(this.localSave.get(), this.serverSave.get()).whenComplete((o, throwable) -> {
-                this.loading.set(false);
+            this.eu4Service.parseSave(this.localSave.get(),
+                                      this.serverSavesField.getSelected() != null ? this.serverSavesField.getSelected().id() : this.serverSavesField.getText())
+                           .whenComplete((o, throwable) -> {
+                               this.loading.set(false);
 
-                if (throwable == null) {
-                    this.finishedButton.setVisible(true);
-                } else {
-                    this.errorText.setVisible(true);
-                }
-            });
+                               if (throwable == null) {
+                                   this.finishedButton.setVisible(true);
+                               } else {
+                                   this.errorText.setVisible(true);
+                               }
+                           });
             this.progressBar.progressProperty().bind(this.eu4Service.getState().progressProperty().divide(100d));
             this.progressText.textProperty().bind(this.eu4Service.getState().labelProperty());
         });

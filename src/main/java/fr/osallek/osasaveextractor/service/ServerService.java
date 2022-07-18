@@ -1,11 +1,11 @@
 package fr.osallek.osasaveextractor.service;
 
+import fr.osallek.eu4parser.common.ZipUtils;
 import fr.osallek.osasaveextractor.service.object.save.SaveDTO;
-import fr.osallek.osasaveextractor.service.object.server.AssetsToSendDTO;
 import fr.osallek.osasaveextractor.service.object.server.ServerSave;
 import fr.osallek.osasaveextractor.service.object.server.UploadResponseDTO;
-import org.springframework.stereotype.Service;
-
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -14,17 +14,20 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import org.springframework.stereotype.Service;
 
 @Service
 public class ServerService {
 
     private static final Random RANDOM = new Random();
 
-    public List<ServerSave> getSaves() {
+    public SortedSet<ServerSave> getSaves() {
         //Todo
-        List<ServerSave> saves = new ArrayList<>();
+        SortedSet<ServerSave> saves = new TreeSet<>(Comparator.comparing(ServerSave::creationDate).reversed());
 
         int nb = RANDOM.nextInt(1, 10);
 
@@ -37,8 +40,6 @@ public class ServerService {
                                      getRandomDate(),
                                      UUID.randomUUID().toString()));
         }
-
-        saves.sort(Comparator.comparing(ServerSave::creationDate).reversed());
 
         return saves;
     }
@@ -53,8 +54,11 @@ public class ServerService {
         return CompletableFuture.completedFuture(new UploadResponseDTO(saveFile)); //Todo
     }
 
-    public CompletableFuture<Boolean> uploadAssets(AssetsToSendDTO assets) {
-        //Todo zip and send
+    public CompletableFuture<Boolean> uploadAssets(List<Path> assets, Path root) throws IOException {
+        Path zip = root.resolve("assets.zip");
+
+        ZipUtils.zipFolder(root, zip, assets::contains);
+
         return CompletableFuture.completedFuture(true);
     }
 

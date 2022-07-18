@@ -14,18 +14,7 @@ import fr.osallek.osasaveextractor.service.object.ProgressState;
 import fr.osallek.osasaveextractor.service.object.ProgressStep;
 import fr.osallek.osasaveextractor.service.object.save.SaveDTO;
 import fr.osallek.osasaveextractor.service.object.server.AssetsDTO;
-import fr.osallek.osasaveextractor.service.object.server.AssetsToSendDTO;
 import fr.osallek.osasaveextractor.service.object.server.ServerSave;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.BooleanUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.MessageSource;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.stereotype.Service;
-
-import javax.imageio.ImageIO;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -44,6 +33,16 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+import javax.imageio.ImageIO;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.FileExistsException;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSource;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.stereotype.Service;
 
 @Service
 public class Eu4Service {
@@ -89,7 +88,7 @@ public class Eu4Service {
         return new ArrayList<>();
     }
 
-    public CompletableFuture<Void> parseSave(Path toAnalyse, ServerSave previousSave) {
+    public CompletableFuture<Void> parseSave(Path toAnalyse, String previousSave) {
         this.state = new ProgressState(ProgressStep.NONE, this.messageSource, Locale.getDefault());
 
         return this.executor.submitListenable(() -> {
@@ -107,6 +106,7 @@ public class Eu4Service {
 
                                                     this.state.setProgress(progress);
                                                 });
+
                 this.state.setStep(ProgressStep.PARSING_SAVE);
                 this.state.setSubStep(ProgressStep.PARSING_SAVE_INFO);
                 Save save = Eu4Parser.loadSave(savePath, game, Map.of(item -> ClausewitzItem.DEFAULT_NAME.equals(item.getParent().getName()), s -> {
@@ -118,6 +118,7 @@ public class Eu4Service {
                         this.state.setSubStep(ProgressStep.PARSING_SAVE_WARS);
                     }
                 }));
+
                 this.state.setStep(ProgressStep.GENERATING_DATA);
                 this.state.setSubStep(null);
 
@@ -166,6 +167,7 @@ public class Eu4Service {
                         } else {
                             LOGGER.warn("Could not get hash for trade good {}", tradeGood.getName());
                         }
+                    } catch (FileExistsException ignored) {
                     } catch (IOException e) {
                         LOGGER.warn("Could not write trade good file for {}: {}", tradeGood.getName(), e.getMessage(), e);
                     }
@@ -187,6 +189,7 @@ public class Eu4Service {
                         } else {
                             LOGGER.warn("Could not get hash for trade religion {}", religion.getName());
                         }
+                    } catch (FileExistsException ignored) {
                     } catch (IOException e) {
                         LOGGER.warn("Could not write trade religion file for {}: {}", religion.getName(), e.getMessage(), e);
                     }
@@ -211,12 +214,13 @@ public class Eu4Service {
                         } else {
                             LOGGER.warn("Could not get hash for country {}", country.getTag());
                         }
+                    } catch (FileExistsException ignored) {
                     } catch (IOException e) {
                         LOGGER.warn("Could not write country file for {}: {}", country.getTag(), e.getMessage(), e);
                     }
                 });
 
-                SaveDTO saveDTO = new SaveDTO(save, provinceChecksum.get(), colorsChecksum.get(), religions,
+                SaveDTO saveDTO = new SaveDTO(previousSave, save, provinceChecksum.get(), colorsChecksum.get(), religions,
                                               value -> {
                                                   this.state.setSubStep(ProgressStep.GENERATING_DATA_COUNTRIES);
                                                   int progress = ProgressStep.GENERATING_DATA_COUNTRIES.progress;
@@ -225,8 +229,9 @@ public class Eu4Service {
 
                                                   this.state.setProgress(progress);
                                               });
-                Path dataFile = tmpFolder.resolve(saveDTO.getId() + ".json");
+                Path dataFile = tmpFolder.resolve("save.json"); //Todo remove when uploading
                 this.objectMapper.writeValue(dataFile.toFile(), saveDTO);
+
                 this.state.setStep(ProgressStep.SENDING_DATA);
                 this.state.setSubStep(null);
 
@@ -237,7 +242,7 @@ public class Eu4Service {
                                                  this.state.setError(true);
                                                  LOGGER.error(throwable.getMessage(), throwable);
 
-                                                 //FileUtils.deleteQuietly(tmpFolder.toFile()); //Todo
+                                                 FileUtils.deleteQuietly(tmpFolder.toFile());
                                              }
                                          })
                                          .thenCompose(response -> {
@@ -264,7 +269,7 @@ public class Eu4Service {
                                                  this.state.setError(true);
                                                  LOGGER.error(throwable.getMessage(), throwable);
 
-                                                 //FileUtils.deleteQuietly(tmpFolder.toFile()); //Todo
+                                                 FileUtils.deleteQuietly(tmpFolder.toFile());
                                              }
                                          })
                                          .thenAccept(response -> {
@@ -283,7 +288,7 @@ public class Eu4Service {
 
     private CompletableFuture<Boolean> sendMissingAssets(AssetsDTO assets, Path tmpFolder, Save save, Path colorsFile, Path provinceFile,
                                                          Map<String, Religion> religions) throws IOException {
-        AssetsToSendDTO toSend = new AssetsToSendDTO();
+        List<Path> toSend = new ArrayList<>();
 
         if (assets.provinces()) {
             Path provinceMapFile = tmpFolder.resolve("provinces").resolve("provinces.png");
@@ -295,14 +300,14 @@ public class Eu4Service {
                 File source = provinceMapFile.toFile();
                 provinceMapFile = provinceMapFile.resolveSibling(provinceChecksum.get() + ".png");
                 FileUtils.moveFile(source, provinceMapFile.toFile());
-                toSend.setProvinces(provinceMapFile);
+                toSend.add(provinceMapFile);
             } else {
                 throw new RuntimeException("Could not get hash of provinces image");
             }
         }
 
         if (assets.colors()) {
-            toSend.setColors(colorsFile);
+            toSend.add(colorsFile);
         }
 
         if (CollectionUtils.isNotEmpty(assets.countries())) {
@@ -310,7 +315,7 @@ public class Eu4Service {
             save.getCountries().values().stream().filter(country -> assets.countries().contains(country.getTag())).forEach(country -> {
                 if (country.useCustomFlagImage()) {
                     if (country.getWritenTo() != null) {
-                        toSend.getCountries().add(country.getWritenTo());
+                        toSend.add(country.getWritenTo());
                     }
                 } else {
                     File file = country.getFlagFile();
@@ -318,7 +323,7 @@ public class Eu4Service {
                     Constants.getFileChecksum(file)
                              .ifPresentOrElse(checksum -> {
                                                   Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                                                  toSend.getCountries().add(cPath.resolve(image));
+                                                  toSend.add(cPath.resolve(image));
                                               },
                                               () -> LOGGER.error("Could not get hash of country {}", country.getTag()));
                 }
@@ -333,7 +338,7 @@ public class Eu4Service {
                 Constants.getFileChecksum(file)
                          .ifPresentOrElse(checksum -> {
                                               Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                                              toSend.getAdvisors().add(cPath.resolve(image));
+                                              toSend.add(cPath.resolve(image));
                                           },
                                           () -> LOGGER.error("Could not get hash of advisor {}", advisor.getName()));
             });
@@ -347,7 +352,7 @@ public class Eu4Service {
                 Constants.getFileChecksum(file)
                          .ifPresentOrElse(checksum -> {
                                               Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                                              toSend.getInstitutions().add(cPath.resolve(image));
+                                              toSend.add(cPath.resolve(image));
                                           },
                                           () -> LOGGER.error("Could not get hash of institution {}", institution.getName()));
             });
@@ -361,7 +366,7 @@ public class Eu4Service {
                 Constants.getFileChecksum(file)
                          .ifPresentOrElse(checksum -> {
                                               Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                                              toSend.getBuildings().add(cPath.resolve(image));
+                                              toSend.add(cPath.resolve(image));
                                           },
                                           () -> LOGGER.error("Could not get hash of building {}", building.getName()));
             });
@@ -371,7 +376,7 @@ public class Eu4Service {
             religions.values()
                      .stream()
                      .filter(religion -> assets.religions().contains(religion.getName()))
-                     .forEach(religion -> toSend.getReligions().add(religion.getWritenTo()));
+                     .forEach(religion -> toSend.add(religion.getWritenTo()));
         }
 
         if (CollectionUtils.isNotEmpty(assets.tradeGoods())) {
@@ -379,10 +384,10 @@ public class Eu4Service {
                 .getTradeGoods()
                 .stream()
                 .filter(good -> assets.tradeGoods().contains(good.getName()))
-                .forEach(good -> toSend.getGoods().add(good.getWritenTo()));
+                .forEach(good -> toSend.add(good.getWritenTo()));
         }
 
-        return this.serverService.uploadAssets(toSend);
+        return this.serverService.uploadAssets(toSend, tmpFolder);
     }
 
     public LauncherSettings getLauncherSettings() {

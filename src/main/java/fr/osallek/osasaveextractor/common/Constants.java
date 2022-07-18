@@ -1,9 +1,6 @@
 package fr.osallek.osasaveextractor.common;
 
 import fr.osallek.osasaveextractor.service.object.save.ColorDTO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -11,12 +8,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.Optional;
+import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class Constants {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Constants.class);
 
     private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes(StandardCharsets.US_ASCII);
+
+    public static final Pattern UUID_PATTERN = Pattern.compile("^[\\da-f]{8}-[\\da-f]{4}-[0-5][\\da-f]{3}-[089ab][\\da-f]{3}-[\\da-f]{12}$", Pattern.CASE_INSENSITIVE);
 
     private Constants() {
     }

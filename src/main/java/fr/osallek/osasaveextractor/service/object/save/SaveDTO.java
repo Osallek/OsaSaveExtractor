@@ -4,23 +4,24 @@ import fr.osallek.eu4parser.model.game.Religion;
 import fr.osallek.eu4parser.model.save.Save;
 import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.eu4parser.model.save.province.SaveProvince;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-
+import fr.osallek.osasaveextractor.OsaSaveExtractorApplication;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.DoubleConsumer;
 import java.util.function.Predicate;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class SaveDTO {
 
-    private final String id;
+    private final String owner;
+
+    private final String previousSave;
 
     private final String name;
 
@@ -66,10 +67,11 @@ public class SaveDTO {
 
     private final List<TradeGoodDTO> tradeGoods;
 
-    public SaveDTO(Save save, String provinceImage, String colorsImage, Map<String, Religion> religions, DoubleConsumer percentCountriesConsumer) {
+    public SaveDTO(String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions, DoubleConsumer percentCountriesConsumer) {
+        this.owner = OsaSaveExtractorApplication.ID;
+        this.previousSave = previousSave;
         this.provinceImage = provinceImage;
         this.colorsImage = colorsImage;
-        this.id = UUID.randomUUID().toString();
         this.name = save.getName();
         this.date = save.getDate();
         this.nbProvinces = Collections.max(save.getGame().getProvinces().keySet()); //Get the greatest link
@@ -91,27 +93,42 @@ public class SaveDTO {
         this.advisors = save.getAdvisors().values().stream().map(AdvisorDTO::new).toList();
 
         AtomicInteger i = new AtomicInteger();
-        this.countries = save.getCountries().values().parallelStream().filter(Predicate.not(SaveCountry::isObserver)).map(country -> {
-            CountryDTO countryDTO = new CountryDTO(save, country, save.getDiplomacy());
+        List<SaveCountry> c = save.getCountries()
+                                  .values()
+                                  .stream()
+                                  .filter(Predicate.not(SaveCountry::isObserver))
+                                  .filter(country -> !"REB".equals(country.getTag()))
+                                  .filter(country -> country.getHistory() != null)
+                                  .filter(country -> CollectionUtils.isNotEmpty(country.getHistory().getEvents()))
+                                  .filter(country -> country.getHistory()
+                                                            .getEvents()
+                                                            .stream()
+                                                            .anyMatch(event -> event.getDate().isAfter(country.getSave().getStartDate())))
+                                  .toList();
+        this.countries = c.parallelStream()
+                          .map(country -> {
+                              CountryDTO countryDTO = new CountryDTO(save, country, save.getDiplomacy());
 
-            countryDTO.getHistory().stream().filter(history -> StringUtils.isNotBlank(history.getChangedTagFrom())).forEach(history -> {
-                this.provinces.stream()
-                              .filter(province -> province.isOwnerAt(history.getDate(), history.getChangedTagFrom()))
-                              .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
-                this.provinces.stream() //Add owner when inheriting from decision
-                              .filter(province -> CollectionUtils.isNotEmpty(province.getHistory())
-                                                  && province.getHistory().stream().anyMatch(h -> h.getDate().equals(history.getDate())
-                                                                                                  && country.getTag().equals(h.getFakeOwner())))
-                              .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
-            });
+                              countryDTO.getHistory().stream().filter(history -> StringUtils.isNotBlank(history.getChangedTagFrom())).forEach(history -> {
+                                  this.provinces.stream()
+                                                .filter(province -> province.isOwnerAt(history.getDate(), history.getChangedTagFrom()))
+                                                .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
+                                  this.provinces.stream() //Add owner when inheriting from decision
+                                                .filter(province -> CollectionUtils.isNotEmpty(province.getHistory())
+                                                                    && province.getHistory().stream().anyMatch(h -> h.getDate().equals(history.getDate())
+                                                                                                                    && country.getTag()
+                                                                                                                              .equals(h.getFakeOwner())))
+                                                .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
+                              });
 
-            i.getAndIncrement();
-            percentCountriesConsumer.accept((double) i.get() / save.getCountries().values().size());
+                              i.getAndIncrement();
+                              percentCountriesConsumer.accept((double) i.get() / c.size());
 
-            return countryDTO;
-        }).toList();
+                              return countryDTO;
+                          })
+                          .toList();
 
-        this.cultures = save.getGame().getCultures().stream().map(c -> new CultureDTO(save, c)).toList();
+        this.cultures = save.getGame().getCultures().stream().map(culture -> new CultureDTO(save, culture)).toList();
         this.religions = save.getReligions()
                              .getReligions()
                              .values()
@@ -147,8 +164,12 @@ public class SaveDTO {
         this.tradeGoods = save.getGame().getTradeGoods().stream().map(tradeGood -> new TradeGoodDTO(save, tradeGood)).toList();
     }
 
-    public String getId() {
-        return id;
+    public String getOwner() {
+        return owner;
+    }
+
+    public String getPreviousSave() {
+        return previousSave;
     }
 
     public String getName() {

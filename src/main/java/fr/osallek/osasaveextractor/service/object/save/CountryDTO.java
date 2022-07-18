@@ -4,6 +4,8 @@ import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.common.NumbersUtils;
 import fr.osallek.eu4parser.model.game.Culture;
 import fr.osallek.eu4parser.model.save.Save;
+import fr.osallek.eu4parser.model.save.country.Expense;
+import fr.osallek.eu4parser.model.save.country.Income;
 import fr.osallek.eu4parser.model.save.country.Losses;
 import fr.osallek.eu4parser.model.save.country.PowerProjection;
 import fr.osallek.eu4parser.model.save.country.PowerSpent;
@@ -115,6 +117,8 @@ public class CountryDTO extends ImageLocalised {
 
     private final List<String> warningsBy;
 
+    private final Double income;
+
     private final Double prestige;
 
     private final Integer stability;
@@ -147,13 +151,29 @@ public class CountryDTO extends ImageLocalised {
 
     private final int maxManpower;
 
+    private final int armyLimit;
+
+    private final double armyMorale;
+
+    private final double discipline;
+
     private final int sailors;
 
     private final int maxSailors;
 
+    private final int navalLimit;
+
+    private final double navalMorale;
+
     private final Map<Losses, Integer> losses;
 
     private final double innovativeness;
+
+    private final Map<Expense, Double> expenses;
+
+    private final Map<Income, Double> incomes;
+
+    private final Map<Expense, Double> totalExpenses;
 
     private final List<CountryHistoryDTO> history = new ArrayList<>();
 
@@ -312,6 +332,7 @@ public class CountryDTO extends ImageLocalised {
                                 .toList();
 
         this.prestige = country.getPrestige();
+        this.income = country.getEstimatedMonthlyIncome();
         this.corruption = country.getCorruption();
         this.stability = country.getStability();
         this.inflation = country.getInflation();
@@ -327,8 +348,13 @@ public class CountryDTO extends ImageLocalised {
         this.lastBankrupt = country.lastBankrupt();
         this.maxManpower = NumbersUtils.doubleToInt(NumbersUtils.doubleOrDefault(country.getMaxManpower()) * 1000);
         this.manpower = NumbersUtils.doubleToInt(NumbersUtils.doubleOrDefault(country.getManpower()) * 1000);
+        this.armyLimit = (int) country.getLandForceLimit();
+        this.armyMorale = country.getLandMorale();
+        this.discipline = country.getDiscipline();
         this.maxSailors = NumbersUtils.doubleToInt(NumbersUtils.doubleOrDefault(country.getMaxSailors()) * 1000);
         this.sailors = NumbersUtils.doubleToInt(NumbersUtils.doubleOrDefault(country.getSailors()) * 1000);
+        this.navalLimit = (int) country.getNavalForceLimit();
+        this.navalMorale = country.getNavalMorale();
         this.losses = country.getLosses();
         this.innovativeness = NumbersUtils.doubleOrDefault(country.getInnovativeness());
         this.alive = !country.getContinents().isEmpty();
@@ -339,6 +365,16 @@ public class CountryDTO extends ImageLocalised {
             this.history.add(new CountryHistoryDTO(country.getHistory()));
             this.history.removeIf(Predicate.not(CountryHistoryDTO::notEmpty));
             this.history.sort(Comparator.comparing(CountryHistoryDTO::getDate));
+        }
+
+        if (country.getLedger() != null) {
+            this.expenses = country.getLedger().getLastMonthExpenseTable();
+            this.incomes = country.getLedger().getLastMonthIncomeTable();
+            this.totalExpenses = country.getLedger().getTotalExpenseTable();
+        } else {
+            this.expenses = null;
+            this.incomes = null;
+            this.totalExpenses = null;
         }
     }
 
@@ -518,6 +554,10 @@ public class CountryDTO extends ImageLocalised {
         return warningsBy;
     }
 
+    public Double getIncome() {
+        return income;
+    }
+
     public Double getPrestige() {
         return prestige;
     }
@@ -582,6 +622,18 @@ public class CountryDTO extends ImageLocalised {
         return maxManpower;
     }
 
+    public int getArmyLimit() {
+        return armyLimit;
+    }
+
+    public double getArmyMorale() {
+        return armyMorale;
+    }
+
+    public double getDiscipline() {
+        return discipline;
+    }
+
     public int getSailors() {
         return sailors;
     }
@@ -590,12 +642,32 @@ public class CountryDTO extends ImageLocalised {
         return maxSailors;
     }
 
+    public int getNavalLimit() {
+        return navalLimit;
+    }
+
+    public double getNavalMorale() {
+        return navalMorale;
+    }
+
     public Map<Losses, Integer> getLosses() {
         return losses;
     }
 
     public double getInnovativeness() {
         return innovativeness;
+    }
+
+    public Map<Expense, Double> getExpenses() {
+        return expenses;
+    }
+
+    public Map<Income, Double> getIncomes() {
+        return incomes;
+    }
+
+    public Map<Expense, Double> getTotalExpenses() {
+        return totalExpenses;
     }
 
     public List<CountryHistoryDTO> getHistory() {
