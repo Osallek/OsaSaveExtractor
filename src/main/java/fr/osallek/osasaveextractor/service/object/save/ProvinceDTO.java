@@ -120,7 +120,7 @@ public class ProvinceDTO extends SimpleProvinceDTO {
     }
 
     @JsonIgnore
-    public void addOwner(LocalDate date, String tag) {
+    public synchronized void addOwner(LocalDate date, String tag) {
         this.history.add(new ProvinceHistoryDTO(date, tag, tag));
         this.history.sort(ProvinceHistoryDTO.COMPARATOR);
     }

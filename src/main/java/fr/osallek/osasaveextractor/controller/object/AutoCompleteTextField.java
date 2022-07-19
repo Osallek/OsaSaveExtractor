@@ -14,7 +14,7 @@ import javafx.scene.control.TextField;
  */
 public class AutoCompleteTextField<T> extends TextField {
 
-    private final Map<String, T> entries;
+    private Map<String, T> entries;
 
     private final ContextMenu entriesPopup;
 
@@ -24,7 +24,20 @@ public class AutoCompleteTextField<T> extends TextField {
         super();
         this.entries = entries;
         this.entriesPopup = new ContextMenu();
+        computeItems();
 
+        setOnMouseClicked(event -> {
+            if (!this.entriesPopup.isShowing()) {
+                this.entriesPopup.show(AutoCompleteTextField.this, Side.BOTTOM, 0, 0);
+            }
+        });
+
+        textProperty().addListener((observable, oldValue, newValue) -> {
+            this.selected = this.entries.get(newValue);
+        });
+    }
+
+    private void computeItems() {
         List<CustomMenuItem> menuItems = this.entries.keySet().stream().map(s -> {
             Label entryLabel = new Label(s);
             CustomMenuItem item = new CustomMenuItem(entryLabel, true);
@@ -38,24 +51,22 @@ public class AutoCompleteTextField<T> extends TextField {
             return item;
         }).toList();
 
+        this.entriesPopup.getItems().clear();
         this.entriesPopup.getItems().addAll(menuItems);
-
-        setOnMouseClicked(event -> {
-            if (!this.entriesPopup.isShowing()) {
-                this.entriesPopup.show(AutoCompleteTextField.this, Side.BOTTOM, 0, 0);
-            }
-        });
-
-        textProperty().addListener((observable, oldValue, newValue) -> {
-            this.selected = this.entries.get(newValue);
-        });
     }
 
     public Set<String> getEntries() {
         return this.entries.keySet();
     }
 
+    public void setEntries(Map<String, T> entries) {
+        this.entries = entries;
+        computeItems();
+    }
+
     public T getSelected() {
         return this.selected;
-    };
+    }
+
+    ;
 }

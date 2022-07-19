@@ -12,6 +12,7 @@ import fr.osallek.osasaveextractor.service.ServerService;
 import fr.osallek.osasaveextractor.service.object.server.ServerSave;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.SortedSet;
@@ -19,7 +20,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javafx.application.Application;
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -40,17 +40,11 @@ import javafx.scene.text.Text;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.kordamp.bootstrapfx.scene.layout.Panel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
 @Component
 public class MainController {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(MainController.class);
-
-    private static final String DEFAULT = "default";
 
     private final Eu4Service eu4Service;
 
@@ -72,11 +66,11 @@ public class MainController {
 
     private VBox progressVBox;
 
-    private ReadOnlyObjectProperty<Path> localSave;
+    private ComboBox<Path> localSavesBox;
 
     private AutoCompleteTextField<ServerSave> serverSavesField;
 
-    private BooleanProperty serverSavesInvalid = new SimpleBooleanProperty();
+    private final BooleanProperty serverSavesInvalid = new SimpleBooleanProperty();
 
     private final BooleanProperty loading = new SimpleBooleanProperty(false);
 
@@ -101,7 +95,7 @@ public class MainController {
         title.setAlignment(Pos.TOP_CENTER);
         title.setMaxWidth(Double.MAX_VALUE);
         title.getStyleClass().add("h1");
-        titleRow.addColumn(new BootstrapColumn(title, new int[] {12, 10, 8, 6, 4}));
+        titleRow.addColumn(new BootstrapColumn(title, new int[] {12, 12, 10, 8, 6}));
 
         BootstrapRow idRow = new BootstrapRow(true);
         Panel idPanel = new Panel();
@@ -125,7 +119,7 @@ public class MainController {
         Label idLabel = new Label(OsaSaveExtractorApplication.ID);
         idPanel.setBody(idLabel);
 
-        idRow.addColumn(new BootstrapColumn(idPanel, new int[] {12, 10, 8, 6, 4}));
+        idRow.addColumn(new BootstrapColumn(idPanel, new int[] {12, 12, 10, 8, 6}));
 
         BootstrapRow localSavesRow = new BootstrapRow(true);
         Panel localSavesPanel = new Panel();
@@ -139,21 +133,20 @@ public class MainController {
         List<Path> localSaves = this.eu4Service.getSaves();
 
         if (CollectionUtils.isNotEmpty(localSaves)) {
-            ComboBox<Path> localSavesBox = new ComboBox<>(FXCollections.observableArrayList(localSaves));
+            this.localSavesBox = new ComboBox<>(FXCollections.observableArrayList(localSaves));
             localSavesBox.setVisibleRowCount(20);
             localSavesBox.setCellFactory(param -> new LocalSaveListCell(this.eu4Service));
             localSavesBox.setButtonCell(new LocalSaveListCell(this.eu4Service));
             localSavesBox.setPromptText(this.messageSource.getMessage("ose.local-saves.choose", null,
                                                                       Locale.getDefault()));
             localSavesBox.disableProperty().bind(this.loading);
-            this.localSave = localSavesBox.getSelectionModel().selectedItemProperty();
             localSavesPanel.setBody(localSavesBox);
         } else {
             localSavesPanel.setBody(new Text(this.messageSource.getMessage("ose.saves.none", null,
                                                                            Locale.getDefault())));
         }
 
-        localSavesRow.addColumn(new BootstrapColumn(localSavesPanel, new int[] {12, 10, 8, 6, 4}));
+        localSavesRow.addColumn(new BootstrapColumn(localSavesPanel, new int[] {12, 12, 10, 8, 6}));
 
         BootstrapRow serverSavesRow = new BootstrapRow(true);
         Panel serverSavesPanel = new Panel();
@@ -166,47 +159,45 @@ public class MainController {
 
         SortedSet<ServerSave> serverSaves = this.serverService.getSaves();
 
-        if (CollectionUtils.isNotEmpty(serverSaves)) {
+        this.serverSavesField = new AutoCompleteTextField<>(serverSaves.stream()
+                                                                       .limit(20)
+                                                                       .collect(Collectors.toMap(s -> s.toString(this.messageSource), Function.identity(),
+                                                                                                 (a, b) -> a, LinkedHashMap::new)));
+        this.serverSavesField.disableProperty().bind(this.loading);
 
-            this.serverSavesField = new AutoCompleteTextField<>(serverSaves.stream()
-                                                                           .collect(Collectors.toMap(s -> s.toString(this.messageSource), Function.identity())));
-            this.serverSavesField.disableProperty().bind(this.loading);
+        Label label = new Label(this.messageSource.getMessage("ose.server-saves.format", null, Locale.getDefault()));
+        label.visibleProperty().bind(this.serverSavesInvalid);
+        label.setTextFill(Color.RED);
 
-            Label label = new Label(this.messageSource.getMessage("ose.server-saves.format", null, Locale.getDefault()));
-            label.visibleProperty().bind(this.serverSavesInvalid);
-            label.setTextFill(Color.RED);
+        this.serverSavesField.textProperty()
+                             .addListener((observable, oldValue, newValue) ->
+                                                  this.serverSavesInvalid.set(StringUtils.isNotBlank(newValue)
+                                                                              && serverSaves.stream()
+                                                                                            .noneMatch(serverSave -> newValue.equals(serverSave.toString(this.messageSource)))
+                                                                              && !Constants.UUID_PATTERN.matcher(newValue).matches()));
 
-            this.serverSavesField.textProperty()
-                                 .addListener((observable, oldValue, newValue) ->
-                                                      this.serverSavesInvalid.set(StringUtils.isNotBlank(newValue)
-                                                                                  && serverSaves.stream()
-                                                                                                .noneMatch(serverSave -> newValue.equals(serverSave.toString(this.messageSource)))
-                                                                                  && !Constants.UUID_PATTERN.matcher(newValue).matches()));
+        VBox vBox = new VBox();
+        vBox.setSpacing(8);
+        vBox.getChildren().add(this.serverSavesField);
+        vBox.getChildren().add(label);
 
-            VBox vBox = new VBox();
-            vBox.setSpacing(8);
-            vBox.getChildren().add(this.serverSavesField);
-            vBox.getChildren().add(label);
+        serverSavesPanel.setBody(vBox);
 
-            serverSavesPanel.setBody(vBox);
-        } else {
-            serverSavesPanel.setBody(new Text(this.messageSource.getMessage("ose.saves.none", null,
-                                                                            Locale.getDefault())));
-        }
-
-        serverSavesRow.addColumn(new BootstrapColumn(serverSavesPanel, new int[] {12, 10, 8, 6, 4}));
+        serverSavesRow.addColumn(new BootstrapColumn(serverSavesPanel, new int[] {12, 12, 10, 8, 6}));
 
         BootstrapRow actionRow = new BootstrapRow(true);
         Button submitButton = new Button(this.messageSource.getMessage("ose.analyse", null, Locale.getDefault()));
         submitButton.getStyleClass().addAll("btn", "btn-primary");
-        submitButton.disableProperty().bind(this.localSave.isNull().or(this.loading).or(this.serverSavesInvalid));
+        submitButton.disableProperty()
+                    .bind(this.localSavesBox.getSelectionModel().selectedItemProperty().isNull().or(this.loading).or(this.serverSavesInvalid));
         submitButton.setOnAction(event -> {
             this.errorText.setVisible(false);
             this.finishedButton.setVisible(false);
             this.loading.setValue(true);
             this.progressVBox.setVisible(true);
-            this.eu4Service.parseSave(this.localSave.get(),
-                                      this.serverSavesField.getSelected() != null ? this.serverSavesField.getSelected().id() : this.serverSavesField.getText())
+            this.eu4Service.parseSave(this.localSavesBox.getSelectionModel().selectedItemProperty().get(),
+                                      this.serverSavesField.getSelected() != null ? this.serverSavesField.getSelected().id() : this.serverSavesField.getText(),
+                                      s -> this.errorText.setText(this.messageSource.getMessage("ose.server.error." + s, null, Locale.getDefault())))
                            .whenComplete((o, throwable) -> {
                                this.loading.set(false);
 
@@ -215,12 +206,22 @@ public class MainController {
                                } else {
                                    this.errorText.setVisible(true);
                                }
+                           })
+                           .thenAccept(unused -> {
+                               this.serverSavesField.setEntries(this.serverService.getSaves()
+                                                                                  .stream()
+                                                                                  .limit(20)
+                                                                                  .collect(Collectors.toMap(s -> s.toString(this.messageSource),
+                                                                                                            Function.identity(),
+                                                                                                            (a, b) -> a, LinkedHashMap::new)));
+                               this.localSavesBox.getSelectionModel().clearSelection();
+                               this.serverSavesField.clear();
                            });
             this.progressBar.progressProperty().bind(this.eu4Service.getState().progressProperty().divide(100d));
             this.progressText.textProperty().bind(this.eu4Service.getState().labelProperty());
         });
 
-        actionRow.addColumn(new BootstrapColumn(submitButton, new int[] {12, 10, 8, 6, 4}));
+        actionRow.addColumn(new BootstrapColumn(submitButton, new int[] {12, 12, 10, 8, 6}));
 
         BootstrapRow progressRow = new BootstrapRow(true);
 
@@ -243,7 +244,7 @@ public class MainController {
         this.progressVBox.getChildren().addAll(this.progressBar, this.progressText, this.errorText, this.finishedButton);
         this.progressVBox.setVisible(false);
 
-        progressRow.addColumn(new BootstrapColumn(this.progressVBox, new int[] {12, 10, 8, 6, 4}));
+        progressRow.addColumn(new BootstrapColumn(this.progressVBox, new int[] {12, 12, 10, 8, 6}));
 
         this.root.addRow(titleRow);
         this.root.addRow(idRow);

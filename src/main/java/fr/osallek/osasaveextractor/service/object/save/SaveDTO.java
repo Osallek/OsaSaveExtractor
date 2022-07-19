@@ -107,7 +107,7 @@ public class SaveDTO {
                                   .toList();
         this.countries = c.parallelStream()
                           .map(country -> {
-                              CountryDTO countryDTO = new CountryDTO(save, country, save.getDiplomacy());
+                              CountryDTO countryDTO = new CountryDTO(save, country, save.getDiplomacy(), this.provinces);
 
                               countryDTO.getHistory().stream().filter(history -> StringUtils.isNotBlank(history.getChangedTagFrom())).forEach(history -> {
                                   this.provinces.stream()

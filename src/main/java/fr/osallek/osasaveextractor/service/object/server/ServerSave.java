@@ -10,19 +10,23 @@ import java.time.format.FormatStyle;
 import java.util.Locale;
 import org.springframework.context.MessageSource;
 
-public record ServerSave(@JsonProperty("name") String name, @JsonProperty("creation_date") LocalDateTime creationDate, @JsonProperty("date") LocalDate date,
+public record ServerSave(@JsonProperty("name") String name, @JsonProperty("creationDate") LocalDateTime creationDate, @JsonProperty("date") LocalDate date,
                          @JsonProperty("id") String id) {
 
     @JsonIgnore
     public String toString(MessageSource messageSource) {
         Locale locale = Locale.getDefault();
-        return name()
+        return this.name
                + " ["
-               + date().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(locale).withChronology(Chronology.ofLocale(locale)))
+               + this.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(locale).withChronology(Chronology.ofLocale(locale)))
                + "] ("
                + messageSource.getMessage("ose.creation-date", null, locale)
                + " "
-               + creationDate().format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withLocale(locale).withChronology(Chronology.ofLocale(locale)))
+               + this.creationDate.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
+                                                           .withLocale(locale)
+                                                           .withChronology(Chronology.ofLocale(locale)))
+               + ") ("
+               + this.id
                + ')';
     }
 }

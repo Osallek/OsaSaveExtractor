@@ -10,11 +10,12 @@ import fr.osallek.eu4parser.model.game.Religion;
 import fr.osallek.eu4parser.model.save.Save;
 import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.osasaveextractor.common.Constants;
+import fr.osallek.osasaveextractor.common.exception.ServerException;
+import fr.osallek.osasaveextractor.controller.object.ErrorCode;
 import fr.osallek.osasaveextractor.service.object.ProgressState;
 import fr.osallek.osasaveextractor.service.object.ProgressStep;
 import fr.osallek.osasaveextractor.service.object.save.SaveDTO;
 import fr.osallek.osasaveextractor.service.object.server.AssetsDTO;
-import fr.osallek.osasaveextractor.service.object.server.ServerSave;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -32,6 +33,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 import org.apache.commons.collections4.CollectionUtils;
@@ -88,8 +91,9 @@ public class Eu4Service {
         return new ArrayList<>();
     }
 
-    public CompletableFuture<Void> parseSave(Path toAnalyse, String previousSave) {
+    public CompletableFuture<Void> parseSave(Path toAnalyse, String previousSave, Consumer<String> error) {
         this.state = new ProgressState(ProgressStep.NONE, this.messageSource, Locale.getDefault());
+        Path tmpFolder = Path.of(FileUtils.getTempDirectoryPath(), UUID.randomUUID().toString());
 
         return this.executor.submitListenable(() -> {
             try {
@@ -121,8 +125,6 @@ public class Eu4Service {
 
                 this.state.setStep(ProgressStep.GENERATING_DATA);
                 this.state.setSubStep(null);
-
-                Path tmpFolder = Path.of(FileUtils.getTempDirectoryPath(), UUID.randomUUID().toString());
                 FileUtils.forceMkdir(tmpFolder.toFile());
 
                 Path provinceFile = Path.of(game.getProvincesImage().getAbsolutePath());
@@ -197,28 +199,39 @@ public class Eu4Service {
 
                 Path flagsFolder = tmpFolder.resolve("flags");
                 FileUtils.forceMkdir(flagsFolder.toFile());
-                save.getCountries().values().stream().filter(SaveCountry::isAlive).forEach(country -> {
-                    try {
-                        BufferedImage image = country.getCustomFlagImage();
-                        if (image == null) {
-                            return;
-                        }
+                save.getCountries()
+                    .values()
+                    .stream()
+                    .filter(Predicate.not(SaveCountry::isObserver))
+                    .filter(country -> !"REB".equals(country.getTag()))
+                    .filter(country -> country.getHistory() != null)
+                    .filter(country -> CollectionUtils.isNotEmpty(country.getHistory().getEvents()))
+                    .filter(country -> country.getHistory()
+                                              .getEvents()
+                                              .stream()
+                                              .anyMatch(event -> event.getDate().isAfter(country.getSave().getStartDate())))
+                    .forEach(country -> {
+                        try {
+                            BufferedImage image = country.getCustomFlagImage();
+                            if (image == null) {
+                                return;
+                            }
 
-                        country.writeImageTo(flagsFolder.resolve(country.getTag() + ".png"), image);
+                            country.writeImageTo(flagsFolder.resolve(country.getTag() + ".png"), image);
 
-                        Optional<String> flagChecksum = Constants.getFileChecksum(country.getWritenTo());
-                        if (flagChecksum.isPresent()) {
-                            Path source = country.getWritenTo();
-                            country.setWritenTo(source.resolveSibling(flagChecksum.get() + ".png"));
-                            FileUtils.moveFile(source.toFile(), country.getWritenTo().toFile());
-                        } else {
-                            LOGGER.warn("Could not get hash for country {}", country.getTag());
+                            Optional<String> flagChecksum = Constants.getFileChecksum(country.getWritenTo());
+                            if (flagChecksum.isPresent()) {
+                                Path source = country.getWritenTo();
+                                country.setWritenTo(source.resolveSibling(flagChecksum.get() + ".png"));
+                                FileUtils.moveFile(source.toFile(), country.getWritenTo().toFile());
+                            } else {
+                                LOGGER.warn("Could not get hash for country {}", country.getTag());
+                            }
+                        } catch (FileExistsException ignored) {
+                        } catch (IOException e) {
+                            LOGGER.warn("Could not write country file for {}: {}", country.getTag(), e.getMessage(), e);
                         }
-                    } catch (FileExistsException ignored) {
-                    } catch (IOException e) {
-                        LOGGER.warn("Could not write country file for {}: {}", country.getTag(), e.getMessage(), e);
-                    }
-                });
+                    });
 
                 SaveDTO saveDTO = new SaveDTO(previousSave, save, provinceChecksum.get(), colorsChecksum.get(), religions,
                                               value -> {
@@ -229,9 +242,8 @@ public class Eu4Service {
 
                                                   this.state.setProgress(progress);
                                               });
-                Path dataFile = tmpFolder.resolve("save.json"); //Todo remove when uploading
-                this.objectMapper.writeValue(dataFile.toFile(), saveDTO);
 
+                this.objectMapper.writeValue(tmpFolder.resolve("save.json").toFile(), saveDTO);
                 this.state.setStep(ProgressStep.SENDING_DATA);
                 this.state.setSubStep(null);
 
@@ -240,17 +252,24 @@ public class Eu4Service {
                                          .whenComplete((s, throwable) -> {
                                              if (throwable != null) {
                                                  this.state.setError(true);
+
+                                                 if (ServerException.class.equals(throwable.getClass())) {
+                                                     error.accept(((ServerException) throwable).getErrorCode().name());
+                                                 } else {
+                                                     error.accept(ErrorCode.DEFAULT_ERROR.name());
+                                                 }
+
                                                  LOGGER.error(throwable.getMessage(), throwable);
 
                                                  FileUtils.deleteQuietly(tmpFolder.toFile());
                                              }
                                          })
                                          .thenCompose(response -> {
-                                             if (response.assetsDTO() == null) {
+                                             if (response.assetsDTO() == null || response.assetsDTO().isEmpty()) {
                                                  return CompletableFuture.completedFuture(response);
                                              } else {
                                                  try {
-                                                     return sendMissingAssets(response.assetsDTO(), tmpFolder, save, finalColorsFile, provinceFile, religions)
+                                                     return sendMissingAssets(response.assetsDTO(), tmpFolder, save, finalColorsFile, provinceFile, religions, response.id())
                                                              .thenCompose(aBoolean -> {
                                                                  if (BooleanUtils.toBoolean(aBoolean)) {
                                                                      return CompletableFuture.completedFuture(response);
@@ -267,6 +286,13 @@ public class Eu4Service {
                                          .whenComplete((s, throwable) -> {
                                              if (throwable != null) {
                                                  this.state.setError(true);
+
+                                                 if (ServerException.class.equals(throwable.getClass())) {
+                                                     error.accept(((ServerException) throwable).getErrorCode().name());
+                                                 } else {
+                                                     error.accept(ErrorCode.DEFAULT_ERROR.name());
+                                                 }
+
                                                  LOGGER.error(throwable.getMessage(), throwable);
 
                                                  FileUtils.deleteQuietly(tmpFolder.toFile());
@@ -276,18 +302,20 @@ public class Eu4Service {
                                              this.state.setStep(ProgressStep.FINISHED);
                                              this.state.setLink(response.link());
 
-                                             //FileUtils.deleteQuietly(tmpFolder.toFile()); //Todo
+                                             FileUtils.deleteQuietly(tmpFolder.toFile());
                                          });
             } catch (Exception e) {
                 this.state.setError(true);
                 LOGGER.error("{}", e.getMessage(), e);
                 throw new RuntimeException(e);
+            } finally {
+                FileUtils.deleteQuietly(tmpFolder.toFile());
             }
         }).completable().thenCompose(unused -> unused);
     }
 
     private CompletableFuture<Boolean> sendMissingAssets(AssetsDTO assets, Path tmpFolder, Save save, Path colorsFile, Path provinceFile,
-                                                         Map<String, Religion> religions) throws IOException {
+                                                         Map<String, Religion> religions, String id) throws IOException {
         List<Path> toSend = new ArrayList<>();
 
         if (assets.provinces()) {
@@ -387,7 +415,7 @@ public class Eu4Service {
                 .forEach(good -> toSend.add(good.getWritenTo()));
         }
 
-        return this.serverService.uploadAssets(toSend, tmpFolder);
+        return this.serverService.uploadAssets(toSend, tmpFolder, id);
     }
 
     public LauncherSettings getLauncherSettings() {

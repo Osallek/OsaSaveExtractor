@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
@@ -33,6 +34,10 @@ public class CountryDTO extends ImageLocalised {
     private final String customName;
 
     private final List<String> players;
+
+    private final Integer nbProvince;
+
+    private final Double dev;
 
     private final Integer greatPowerRank;
 
@@ -181,11 +186,19 @@ public class CountryDTO extends ImageLocalised {
 
     private final int nbInstitutions;
 
-    public CountryDTO(Save save, SaveCountry country, Diplomacy diplomacy) {
+    private final Map<LocalDate, String> changedTag;
+
+    public CountryDTO(Save save, SaveCountry country, Diplomacy diplomacy, SortedSet<ProvinceDTO> provinces) {
         super(save.getGame().getLocalisation(country.getTag()), country.getWritenTo() != null ? country.getWritenTo().toFile() : country.getFlagFile());
         this.tag = country.getTag();
         this.customName = ClausewitzUtils.removeQuotes(StringUtils.firstNonBlank(country.getCustomName(), country.getName()));
         this.players = CollectionUtils.isEmpty(country.getPlayers()) ? null : country.getPlayers().stream().map(ClausewitzUtils::removeQuotes).toList();
+        this.dev = provinces.stream()
+                            .filter(p -> p.isOwnerAt(save.getDate(), this.tag))
+                            .mapToDouble(p -> NumbersUtils.doubleOrDefault(p.getBaseTax()) + NumbersUtils.doubleOrDefault(p.getBaseProduction())
+                                              + NumbersUtils.doubleOrDefault(p.getBaseManpower()))
+                            .sum();
+        this.nbProvince = (int) provinces.stream().filter(p -> p.isOwnerAt(save.getDate(), this.tag)).count();
         this.greatPowerRank = country.getGreatPowerRank();
         this.flags = country.getFlags() == null ? null : country.getFlags().getAll();
         this.hiddenFlags = country.getHiddenFlags() == null ? null : country.getHiddenFlags().getAll();
@@ -376,6 +389,10 @@ public class CountryDTO extends ImageLocalised {
             this.incomes = null;
             this.totalExpenses = null;
         }
+
+        this.changedTag = this.history.stream()
+                                      .filter(h -> StringUtils.isNotBlank(h.getChangedTagFrom()))
+                                      .collect(Collectors.toMap(CountryHistoryDTO::getDate, CountryHistoryDTO::getChangedTagFrom, (a, b) -> a));
     }
 
     public String getTag() {
@@ -388,6 +405,14 @@ public class CountryDTO extends ImageLocalised {
 
     public List<String> getPlayers() {
         return players;
+    }
+
+    public Integer getNbProvince() {
+        return nbProvince;
+    }
+
+    public Double getDev() {
+        return dev;
     }
 
     public Integer getGreatPowerRank() {
@@ -680,5 +705,9 @@ public class CountryDTO extends ImageLocalised {
 
     public int getNbInstitutions() {
         return nbInstitutions;
+    }
+
+    public Map<LocalDate, String> getChangedTag() {
+        return changedTag;
     }
 }
