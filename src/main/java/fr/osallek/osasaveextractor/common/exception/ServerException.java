@@ -7,7 +7,7 @@ public class ServerException extends RuntimeException {
     private final ErrorCode errorCode;
 
     public ServerException(ErrorCode errorCode) {
-        this.errorCode = errorCode;
+        this.errorCode = errorCode == null ? ErrorCode.DEFAULT_ERROR : errorCode;
     }
 
     public ErrorCode getErrorCode() {

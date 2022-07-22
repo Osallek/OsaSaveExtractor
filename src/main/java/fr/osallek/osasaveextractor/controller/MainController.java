@@ -19,6 +19,7 @@ import java.util.SortedSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
@@ -172,8 +173,7 @@ public class MainController {
         this.serverSavesField.textProperty()
                              .addListener((observable, oldValue, newValue) ->
                                                   this.serverSavesInvalid.set(StringUtils.isNotBlank(newValue)
-                                                                              && serverSaves.stream()
-                                                                                            .noneMatch(serverSave -> newValue.equals(serverSave.toString(this.messageSource)))
+                                                                              && this.serverSavesField.getEntries().stream().noneMatch(newValue::equals)
                                                                               && !Constants.UUID_PATTERN.matcher(newValue).matches()));
 
         VBox vBox = new VBox();
@@ -214,8 +214,10 @@ public class MainController {
                                                                                   .collect(Collectors.toMap(s -> s.toString(this.messageSource),
                                                                                                             Function.identity(),
                                                                                                             (a, b) -> a, LinkedHashMap::new)));
-                               this.localSavesBox.getSelectionModel().clearSelection();
-                               this.serverSavesField.clear();
+                               Platform.runLater(() -> {
+                                   this.localSavesBox.getSelectionModel().clearSelection();
+                                   this.serverSavesField.clear();
+                               });
                            });
             this.progressBar.progressProperty().bind(this.eu4Service.getState().progressProperty().divide(100d));
             this.progressText.textProperty().bind(this.eu4Service.getState().labelProperty());

@@ -1,14 +1,18 @@
 package fr.osallek.osasaveextractor.service.object.save;
 
+import fr.osallek.eu4parser.common.NumbersUtils;
 import fr.osallek.eu4parser.model.game.Religion;
 import fr.osallek.eu4parser.model.save.Save;
 import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.eu4parser.model.save.province.SaveProvince;
 import fr.osallek.osasaveextractor.OsaSaveExtractorApplication;
+import fr.osallek.osasaveextractor.common.Constants;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,7 +69,13 @@ public class SaveDTO {
 
     private final List<NamedImageLocalisedDTO> advisorTypes;
 
-    private final List<TradeGoodDTO> tradeGoods;
+    private final List<ColorNamedImageLocalisedDTO> tradeGoods;
+
+    private final List<ColorNamedImageLocalisedDTO> estates;
+
+    private final List<NamedImageLocalisedDTO> estatePrivileges;
+
+    private final List<NamedLocalisedDTO> subjectTypes;
 
     public SaveDTO(String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions, DoubleConsumer percentCountriesConsumer) {
         this.owner = OsaSaveExtractorApplication.ID;
@@ -119,6 +129,14 @@ public class SaveDTO {
                                                                                                                     && country.getTag()
                                                                                                                               .equals(h.getFakeOwner())))
                                                 .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
+
+                                  countryDTO.setDev(this.provinces.stream()
+                                                                  .filter(p -> p.isOwnerAt(save.getDate(), countryDTO.getTag()))
+                                                                  .mapToDouble(p -> NumbersUtils.doubleOrDefault(p.getBaseTax())
+                                                                                    + NumbersUtils.doubleOrDefault(p.getBaseProduction())
+                                                                                    + NumbersUtils.doubleOrDefault(p.getBaseManpower()))
+                                                                  .sum());
+                                  countryDTO.setNbProvince((int) provinces.stream().filter(p -> p.isOwnerAt(save.getDate(), countryDTO.getTag())).count());
                               });
 
                               i.getAndIncrement();
@@ -161,7 +179,47 @@ public class SaveDTO {
                                 .map(advisor -> new NamedImageLocalisedDTO(save.getGame().getLocalisation(advisor.getName()), advisor.getDefaultImage(),
                                                                            advisor.getName()))
                                 .toList();
-        this.tradeGoods = save.getGame().getTradeGoods().stream().map(tradeGood -> new TradeGoodDTO(save, tradeGood)).toList();
+        this.tradeGoods = save.getGame()
+                              .getTradeGoods()
+                              .stream()
+                              .map(tradeGood -> new ColorNamedImageLocalisedDTO(save.getGame().getLocalisation(tradeGood.getName()),
+                                                                                tradeGood.getWritenTo(), tradeGood.getName(),
+                                                                                tradeGood.getColor() == null ? Constants.stringToColor(this.name) :
+                                                                                new ColorDTO(tradeGood.getColor())))
+                              .toList();
+        this.estates = this.countries.stream()
+                                     .map(CountryDTO::getEstates)
+                                     .filter(CollectionUtils::isNotEmpty)
+                                     .flatMap(Collection::stream)
+                                     .map(EstateDTO::getType)
+                                     .distinct()
+                                     .map(s -> save.getGame().getEstate(s))
+                                     .filter(Objects::nonNull)
+                                     .map(estate -> new ColorNamedImageLocalisedDTO(save.getGame().getLocalisation(estate.getName()),
+                                                                                    estate.getWritenTo(), estate.getName(),
+                                                                                    estate.getColor() == null ? Constants.stringToColor(this.name) :
+                                                                                    new ColorDTO(estate.getColor())))
+                                     .toList();
+        this.estatePrivileges = this.countries.stream()
+                                              .map(CountryDTO::getEstates)
+                                              .filter(CollectionUtils::isNotEmpty)
+                                              .flatMap(Collection::stream)
+                                              .map(EstateDTO::getGrantedPrivileges)
+                                              .flatMap(Collection::stream)
+                                              .distinct()
+                                              .map(s -> save.getGame().getEstatePrivilege(s))
+                                              .filter(Objects::nonNull)
+                                              .map(privilege -> new NamedImageLocalisedDTO(save.getGame().getLocalisation(privilege.getName()),
+                                                                                           privilege.getImage(), privilege.getName()))
+                                              .toList();
+        this.subjectTypes = this.diplomacy.getDependencies()
+                                          .stream()
+                                          .map(DependencyDTO::getType)
+                                          .distinct()
+                                          .map(s -> save.getGame().getSubjectType(s))
+                                          .filter(Objects::nonNull)
+                                          .map(type -> new NamedLocalisedDTO(save.getGame().getLocalisation(type.getName() + "_title"), type.getName()))
+                                          .toList();
     }
 
     public String getOwner() {
@@ -256,7 +314,19 @@ public class SaveDTO {
         return advisorTypes;
     }
 
-    public List<TradeGoodDTO> getTradeGoods() {
+    public List<ColorNamedImageLocalisedDTO> getTradeGoods() {
         return tradeGoods;
+    }
+
+    public List<ColorNamedImageLocalisedDTO> getEstates() {
+        return estates;
+    }
+
+    public List<NamedImageLocalisedDTO> getEstatePrivileges() {
+        return estatePrivileges;
+    }
+
+    public List<NamedLocalisedDTO> getSubjectTypes() {
+        return subjectTypes;
     }
 }

@@ -197,6 +197,26 @@ public class Eu4Service {
                     }
                 });
 
+                Path estatesTmpFolder = tmpFolder.resolve("estates");
+                FileUtils.forceMkdir(estatesTmpFolder.toFile());
+                save.getGame().getEstates().forEach(estate -> {
+                    try {
+                        estate.writeImageTo(estatesTmpFolder.resolve(estate.getName() + ".png"));
+
+                        Optional<String> estateChecksum = Constants.getFileChecksum(estate.getWritenTo());
+                        if (estateChecksum.isPresent()) {
+                            Path source = estate.getWritenTo();
+                            estate.setWritenTo(source.resolveSibling(estateChecksum.get() + ".png"));
+                            FileUtils.moveFile(source.toFile(), estate.getWritenTo().toFile());
+                        } else {
+                            LOGGER.warn("Could not get hash for estate {}", estate.getName());
+                        }
+                    } catch (FileExistsException ignored) {
+                    } catch (IOException e) {
+                        LOGGER.warn("Could not write estate file for {}: {}", estate.getName(), e.getMessage(), e);
+                    }
+                });
+
                 Path flagsFolder = tmpFolder.resolve("flags");
                 FileUtils.forceMkdir(flagsFolder.toFile());
                 save.getCountries()
@@ -413,6 +433,28 @@ public class Eu4Service {
                 .stream()
                 .filter(good -> assets.tradeGoods().contains(good.getName()))
                 .forEach(good -> toSend.add(good.getWritenTo()));
+        }
+
+        if (CollectionUtils.isNotEmpty(assets.estates())) {
+            save.getGame()
+                .getEstates()
+                .stream()
+                .filter(estate -> assets.estates().contains(estate.getName()))
+                .forEach(estate -> toSend.add(estate.getWritenTo()));
+        }
+
+        if (CollectionUtils.isNotEmpty(assets.privileges())) {
+            Path cPath = tmpFolder.resolve("privileges");
+            save.getGame().getEstatePrivileges().stream().filter(privilege -> assets.privileges().contains(privilege.getName())).forEach(privilege -> {
+                File file = privilege.getImage();
+
+                Constants.getFileChecksum(file)
+                         .ifPresentOrElse(checksum -> {
+                                              Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                                              toSend.add(cPath.resolve(image));
+                                          },
+                                          () -> LOGGER.error("Could not get hash of privilege {}", privilege.getName()));
+            });
         }
 
         return this.serverService.uploadAssets(toSend, tmpFolder, id);

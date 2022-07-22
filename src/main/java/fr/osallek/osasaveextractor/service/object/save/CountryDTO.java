@@ -35,9 +35,9 @@ public class CountryDTO extends ImageLocalised {
 
     private final List<String> players;
 
-    private final Integer nbProvince;
+    private Integer nbProvince;
 
-    private final Double dev;
+    private Double dev;
 
     private final Integer greatPowerRank;
 
@@ -319,7 +319,7 @@ public class CountryDTO extends ImageLocalised {
                                          .stream()
                                          .filter(r -> r.getSecond().getTag().equals(this.tag))
                                          .findFirst()
-                                         .map(DatableRelation::getSecond)
+                                         .map(DatableRelation::getFirst)
                                          .map(SaveCountry::getTag)
                                          .orElse(null);
         this.warnings = diplomacy.getWarnings()
@@ -411,8 +411,16 @@ public class CountryDTO extends ImageLocalised {
         return nbProvince;
     }
 
+    public void setNbProvince(Integer nbProvince) {
+        this.nbProvince = nbProvince;
+    }
+
     public Double getDev() {
         return dev;
+    }
+
+    public void setDev(Double dev) {
+        this.dev = dev;
     }
 
     public Integer getGreatPowerRank() {
