@@ -373,12 +373,10 @@ public class Eu4Service {
                 } else {
                     File file = country.getFlagFile();
 
-                    Constants.getFileChecksum(file)
-                             .ifPresentOrElse(checksum -> {
-                                                  Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                                                  toSend.add(cPath.resolve(image));
-                                              },
-                                              () -> LOGGER.error("Could not get hash of country {}", country.getTag()));
+                    Constants.getFileChecksum(file).ifPresent(checksum -> {
+                        Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                        toSend.add(cPath.resolve(image));
+                    });
                 }
             });
         }
@@ -388,12 +386,10 @@ public class Eu4Service {
             save.getGame().getAdvisors().stream().filter(advisor -> assets.advisors().contains(advisor.getName())).forEach(advisor -> {
                 File file = advisor.getDefaultImage();
 
-                Constants.getFileChecksum(file)
-                         .ifPresentOrElse(checksum -> {
-                                              Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                                              toSend.add(cPath.resolve(image));
-                                          },
-                                          () -> LOGGER.error("Could not get hash of advisor {}", advisor.getName()));
+                Constants.getFileChecksum(file).ifPresent(checksum -> {
+                    Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                    toSend.add(cPath.resolve(image));
+                });
             });
         }
 
@@ -402,12 +398,10 @@ public class Eu4Service {
             save.getGame().getInstitutions().stream().filter(institution -> assets.institutions().contains(institution.getName())).forEach(institution -> {
                 File file = institution.getImage();
 
-                Constants.getFileChecksum(file)
-                         .ifPresentOrElse(checksum -> {
-                                              Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                                              toSend.add(cPath.resolve(image));
-                                          },
-                                          () -> LOGGER.error("Could not get hash of institution {}", institution.getName()));
+                Constants.getFileChecksum(file).ifPresent(checksum -> {
+                    Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                    toSend.add(cPath.resolve(image));
+                });
             });
         }
 
@@ -416,12 +410,10 @@ public class Eu4Service {
             save.getGame().getBuildings().stream().filter(building -> assets.buildings().contains(building.getName())).forEach(building -> {
                 File file = building.getImage();
 
-                Constants.getFileChecksum(file)
-                         .ifPresentOrElse(checksum -> {
-                                              Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                                              toSend.add(cPath.resolve(image));
-                                          },
-                                          () -> LOGGER.error("Could not get hash of building {}", building.getName()));
+                Constants.getFileChecksum(file).ifPresent(checksum -> {
+                    Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                    toSend.add(cPath.resolve(image));
+                });
             });
         }
 
@@ -450,16 +442,18 @@ public class Eu4Service {
 
         if (CollectionUtils.isNotEmpty(assets.privileges())) {
             Path cPath = tmpFolder.resolve("privileges");
-            save.getGame().getEstatePrivileges().stream().filter(privilege -> assets.privileges().contains(privilege.getName())).forEach(privilege -> {
-                File file = privilege.getImage();
+            save.getGame()
+                .getEstatePrivileges()
+                .stream()
+                .filter(privilege -> assets.privileges().contains(privilege.getName()))
+                .forEach(privilege -> {
+                    File file = privilege.getImage();
 
-                Constants.getFileChecksum(file)
-                         .ifPresentOrElse(checksum -> {
-                                              Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                                              toSend.add(cPath.resolve(image));
-                                          },
-                                          () -> LOGGER.error("Could not get hash of privilege {}", privilege.getName()));
-            });
+                    Constants.getFileChecksum(file).ifPresent(checksum -> {
+                        Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                        toSend.add(cPath.resolve(image));
+                    });
+                });
         }
 
         if (CollectionUtils.isNotEmpty(assets.ideaGroups())) {
@@ -467,12 +461,10 @@ public class Eu4Service {
             save.getGame().getIdeaGroups().stream().filter(group -> assets.ideaGroups().contains(group.getName())).forEach(group -> {
                 File file = group.getImage();
 
-                Constants.getFileChecksum(file)
-                         .ifPresentOrElse(checksum -> {
-                                              Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                                              toSend.add(cPath.resolve(image));
-                                          },
-                                          () -> LOGGER.error("Could not get hash of idea group {}", group.getName()));
+                Constants.getFileChecksum(file).ifPresent(checksum -> {
+                    Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                    toSend.add(cPath.resolve(image));
+                });
             });
         }
 
@@ -502,12 +494,10 @@ public class Eu4Service {
                     return image.get();
                 })
                 .filter(Objects::nonNull)
-                .forEach(file -> Constants.getFileChecksum(file)
-                                          .ifPresentOrElse(checksum -> {
-                                                               Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                                                               toSend.add(cPath.resolve(image));
-                                                           },
-                                                           () -> LOGGER.error("Could not get hash of modifier {}", file.getName())));
+                .forEach(file -> Constants.getFileChecksum(file).ifPresent(checksum -> {
+                    Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                    toSend.add(cPath.resolve(image));
+                }));
         }
 
         return this.serverService.uploadAssets(toSend, tmpFolder, id);

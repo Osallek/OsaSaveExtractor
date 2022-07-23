@@ -393,6 +393,14 @@ public class CountryDTO extends ImageLocalised {
         this.changedTag = this.history.stream()
                                       .filter(h -> StringUtils.isNotBlank(h.getChangedTagFrom()))
                                       .collect(Collectors.toMap(CountryHistoryDTO::getDate, CountryHistoryDTO::getChangedTagFrom, (a, b) -> a));
+        List<CountryHistoryDTO> monarchs = this.history.stream().filter(h -> h.getMonarch() != null).toList();
+        for (int i = 0; i < monarchs.size(); i++) {
+            CountryHistoryDTO h = monarchs.get(i);
+
+            if (h.getMonarch().getDeathDate() == null) {
+                h.getMonarch().setDeathDate(monarchs.size() == i + 1 ? null : monarchs.get(i + 1).getDate());
+            }
+        }
     }
 
     public String getTag() {

@@ -38,7 +38,7 @@ public class MonarchDTO {
 
     private final LocalDate birthDate;
 
-    private final LocalDate deathDate;
+    private LocalDate deathDate;
 
     private final String monarchName;
 
@@ -123,6 +123,10 @@ public class MonarchDTO {
 
     public LocalDate getDeathDate() {
         return deathDate;
+    }
+
+    public void setDeathDate(LocalDate deathDate) {
+        this.deathDate = deathDate;
     }
 
     public String getMonarchName() {

@@ -3,10 +3,11 @@ package fr.osallek.osasaveextractor.service.object.save;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.model.save.country.SaveCountryHistoryEvent;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import org.apache.commons.lang3.ObjectUtils;
 
 public class CountryHistoryDTO {
 
@@ -56,15 +57,9 @@ public class CountryHistoryDTO {
 
     private final QueenDTO queen;
 
-    private final QueenDTO monarchConsort;
-
     private final MonarchDTO monarch;
 
-    private final HeirDTO monarchHeir;
-
     private final HeirDTO heir;
-
-    private final HeirDTO monarchForeignHeir;
 
     private final Integer union;
 
@@ -96,11 +91,11 @@ public class CountryHistoryDTO {
         this.setCountryFlag = event.getSetCountryFlag();
         this.decision = event.getDecision();
         this.queen = event.getQueen() == null ? null : new QueenDTO(event.getQueen());
-        this.monarchConsort = event.getMonarchConsort() == null ? null : new QueenDTO(event.getMonarchConsort());
-        this.monarch = event.getMonarch() == null ? null : new MonarchDTO(event.getMonarch());
-        this.monarchHeir = event.getMonarchHeir() == null ? null : new HeirDTO(event.getMonarchHeir());
+        this.monarch = Optional.ofNullable(ObjectUtils.firstNonNull(event.getMonarch(), event.getMonarchHeir(), event.getMonarchConsort(),
+                                                                    event.getMonarchForeignHeir()))
+                               .map(MonarchDTO::new)
+                               .orElse(null);
         this.heir = event.getHeir() == null ? null : new HeirDTO(event.getHeir());
-        this.monarchForeignHeir = event.getMonarchForeignHeir() == null ? null : new HeirDTO(event.getMonarchForeignHeir());
         this.union = event.getUnion();
         this.tradePort = event.getTradePort();
         this.elector = event.getElector();
@@ -131,11 +126,8 @@ public class CountryHistoryDTO {
                this.setCountryFlag != null ||
                this.decision != null ||
                this.queen != null ||
-               this.monarchConsort != null ||
                this.monarch != null ||
-               this.monarchHeir != null ||
                this.heir != null ||
-               this.monarchForeignHeir != null ||
                this.union != null ||
                this.tradePort != null ||
                this.elector != null;
@@ -233,24 +225,12 @@ public class CountryHistoryDTO {
         return queen;
     }
 
-    public QueenDTO getMonarchConsort() {
-        return monarchConsort;
-    }
-
     public MonarchDTO getMonarch() {
         return monarch;
     }
 
-    public HeirDTO getMonarchHeir() {
-        return monarchHeir;
-    }
-
     public HeirDTO getHeir() {
         return heir;
-    }
-
-    public HeirDTO getMonarchForeignHeir() {
-        return monarchForeignHeir;
     }
 
     public Integer getUnion() {
