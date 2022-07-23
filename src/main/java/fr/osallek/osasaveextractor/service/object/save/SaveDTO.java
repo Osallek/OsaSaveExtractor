@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.DoubleConsumer;
 import java.util.function.Predicate;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 
 public class SaveDTO {
@@ -76,6 +77,8 @@ public class SaveDTO {
     private final List<NamedImageLocalisedDTO> estatePrivileges;
 
     private final List<NamedLocalisedDTO> subjectTypes;
+
+    private final List<IdeaGroupDTO> ideaGroups;
 
     public SaveDTO(String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions, DoubleConsumer percentCountriesConsumer) {
         this.owner = OsaSaveExtractorApplication.ID;
@@ -220,6 +223,16 @@ public class SaveDTO {
                                           .filter(Objects::nonNull)
                                           .map(type -> new NamedLocalisedDTO(save.getGame().getLocalisation(type.getName() + "_title"), type.getName()))
                                           .toList();
+        this.ideaGroups = this.countries.stream()
+                                        .map(CountryDTO::getIdeaGroups)
+                                        .filter(MapUtils::isNotEmpty)
+                                        .map(Map::keySet)
+                                        .flatMap(Collection::stream)
+                                        .distinct()
+                                        .map(s -> save.getGame().getIdeaGroup(s))
+                                        .filter(Objects::nonNull)
+                                        .map(group -> new IdeaGroupDTO(save, group))
+                                        .toList();
     }
 
     public String getOwner() {
@@ -328,5 +341,9 @@ public class SaveDTO {
 
     public List<NamedLocalisedDTO> getSubjectTypes() {
         return subjectTypes;
+    }
+
+    public List<IdeaGroupDTO> getIdeaGroups() {
+        return ideaGroups;
     }
 }

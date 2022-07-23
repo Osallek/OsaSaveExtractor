@@ -5,6 +5,7 @@ import fr.osallek.clausewitzparser.model.ClausewitzItem;
 import fr.osallek.eu4parser.Eu4Parser;
 import fr.osallek.eu4parser.model.LauncherSettings;
 import fr.osallek.eu4parser.model.game.Game;
+import fr.osallek.eu4parser.model.game.IdeaGroup;
 import fr.osallek.eu4parser.model.game.Province;
 import fr.osallek.eu4parser.model.game.Religion;
 import fr.osallek.eu4parser.model.save.Save;
@@ -24,20 +25,24 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.io.FileExistsException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -455,6 +460,54 @@ public class Eu4Service {
                                           },
                                           () -> LOGGER.error("Could not get hash of privilege {}", privilege.getName()));
             });
+        }
+
+        if (CollectionUtils.isNotEmpty(assets.ideaGroups())) {
+            Path cPath = tmpFolder.resolve("idea_groups");
+            save.getGame().getIdeaGroups().stream().filter(group -> assets.ideaGroups().contains(group.getName())).forEach(group -> {
+                File file = group.getImage();
+
+                Constants.getFileChecksum(file)
+                         .ifPresentOrElse(checksum -> {
+                                              Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                                              toSend.add(cPath.resolve(image));
+                                          },
+                                          () -> LOGGER.error("Could not get hash of idea group {}", group.getName()));
+            });
+        }
+
+        if (CollectionUtils.isNotEmpty(assets.modifiers())) {
+            Path cPath = tmpFolder.resolve("modifiers");
+            save.getGame()
+                .getIdeaGroups()
+                .stream()
+                .map(IdeaGroup::getIdeas)
+                .filter(MapUtils::isNotEmpty)
+                .map(Map::entrySet)
+                .flatMap(Collection::stream)
+                .map(entry -> {
+                    AtomicReference<File> image = new AtomicReference<>(null);
+
+                    if (MapUtils.isNotEmpty(entry.getValue().getModifiers())) {
+                        entry.getValue()
+                             .getModifiers()
+                             .keySet()
+                             .stream()
+                             .map(m -> m.getImage(save.getGame()))
+                             .filter(Objects::nonNull)
+                             .findFirst()
+                             .ifPresent(image::set);
+                    }
+
+                    return image.get();
+                })
+                .filter(Objects::nonNull)
+                .forEach(file -> Constants.getFileChecksum(file)
+                                          .ifPresentOrElse(checksum -> {
+                                                               Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                                                               toSend.add(cPath.resolve(image));
+                                                           },
+                                                           () -> LOGGER.error("Could not get hash of modifier {}", file.getName())));
         }
 
         return this.serverService.uploadAssets(toSend, tmpFolder, id);
