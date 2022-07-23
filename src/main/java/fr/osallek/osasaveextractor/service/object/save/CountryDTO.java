@@ -398,7 +398,7 @@ public class CountryDTO extends ImageLocalised {
             CountryHistoryDTO h = monarchs.get(i);
 
             if (h.getMonarch().getDeathDate() == null) {
-                h.getMonarch().setDeathDate(monarchs.size() == i + 1 ? null : monarchs.get(i + 1).getDate());
+                h.getMonarch().setDeathDate(monarchs.size() == i + 1 ? null : monarchs.get(i + 1).getDate(), h.getDate());
             }
         }
     }

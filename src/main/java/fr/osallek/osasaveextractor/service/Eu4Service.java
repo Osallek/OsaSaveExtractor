@@ -468,6 +468,22 @@ public class Eu4Service {
             });
         }
 
+        if (CollectionUtils.isNotEmpty(assets.personalities())) {
+            Path cPath = tmpFolder.resolve("personalities");
+            save.getGame()
+                .getRulerPersonalities()
+                .stream()
+                .filter(personality -> assets.personalities().contains(personality.getName()))
+                .forEach(personality -> {
+                    File file = personality.getImage();
+
+                    Constants.getFileChecksum(file).ifPresent(checksum -> {
+                        Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                        toSend.add(cPath.resolve(image));
+                    });
+                });
+        }
+
         if (CollectionUtils.isNotEmpty(assets.modifiers())) {
             Path cPath = tmpFolder.resolve("modifiers");
             save.getGame()

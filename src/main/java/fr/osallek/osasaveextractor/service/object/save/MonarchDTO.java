@@ -4,6 +4,7 @@ import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.model.game.RulerPersonality;
 import fr.osallek.eu4parser.model.save.country.Monarch;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.lang3.BooleanUtils;
@@ -44,8 +45,10 @@ public class MonarchDTO {
 
     private final LeaderDTO leader;
 
-    public MonarchDTO(Monarch monarch) {
-        this.monarchDate = monarch.getMonarchDate();
+    private Integer duration;
+
+    public MonarchDTO(Monarch monarch, LocalDate date) {
+        this.monarchDate = date;
         this.id = monarch.getAdm();
         this.country = monarch.getCountry().getTag();
         this.personalities = monarch.getPersonalities() == null ? null :
@@ -63,6 +66,7 @@ public class MonarchDTO {
         this.deathDate = monarch.getDeathDate();
         this.monarchName = ClausewitzUtils.removeQuotes(monarch.getMonarchName());
         this.leader = monarch.getLeader() == null ? null : new LeaderDTO(monarch.getLeader());
+        this.duration = this.deathDate == null ? null : (int) ChronoUnit.MONTHS.between(date, this.deathDate);
     }
 
     public LocalDate getMonarchDate() {
@@ -125,8 +129,9 @@ public class MonarchDTO {
         return deathDate;
     }
 
-    public void setDeathDate(LocalDate deathDate) {
+    public void setDeathDate(LocalDate deathDate, LocalDate date) {
         this.deathDate = deathDate;
+        this.duration = this.deathDate == null ? null : (int) ChronoUnit.MONTHS.between(date, this.deathDate);
     }
 
     public String getMonarchName() {
@@ -135,5 +140,13 @@ public class MonarchDTO {
 
     public LeaderDTO getLeader() {
         return leader;
+    }
+
+    public Integer getDuration() {
+        return duration;
+    }
+
+    public void setDuration(Integer duration) {
+        this.duration = duration;
     }
 }

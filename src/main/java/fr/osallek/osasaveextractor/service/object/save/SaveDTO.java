@@ -80,6 +80,8 @@ public class SaveDTO {
 
     private final List<IdeaGroupDTO> ideaGroups;
 
+    private final List<NamedImageLocalisedDTO> personalities;
+
     public SaveDTO(String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions, DoubleConsumer percentCountriesConsumer) {
         this.owner = OsaSaveExtractorApplication.ID;
         this.previousSave = previousSave;
@@ -233,6 +235,20 @@ public class SaveDTO {
                                         .filter(Objects::nonNull)
                                         .map(group -> new IdeaGroupDTO(save, group))
                                         .toList();
+        this.personalities = this.countries.stream()
+                                           .map(CountryDTO::getHistory)
+                                           .flatMap(Collection::stream)
+                                           .map(CountryHistoryDTO::getMonarch)
+                                           .filter(Objects::nonNull)
+                                           .map(MonarchDTO::getPersonalities)
+                                           .filter(CollectionUtils::isNotEmpty)
+                                           .flatMap(Collection::stream)
+                                           .distinct()
+                                           .map(s -> save.getGame().getRulerPersonality(s))
+                                           .filter(Objects::nonNull)
+                                           .map(personality -> new NamedImageLocalisedDTO(save.getGame().getLocalisation(personality.getName()),
+                                                                                          personality.getImage(), personality.getName()))
+                                           .toList();
     }
 
     public String getOwner() {
@@ -345,5 +361,9 @@ public class SaveDTO {
 
     public List<IdeaGroupDTO> getIdeaGroups() {
         return ideaGroups;
+    }
+
+    public List<NamedImageLocalisedDTO> getPersonalities() {
+        return personalities;
     }
 }

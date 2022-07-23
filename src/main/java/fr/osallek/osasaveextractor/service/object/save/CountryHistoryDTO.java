@@ -90,12 +90,12 @@ public class CountryHistoryDTO {
         this.religiousSchool = event.getReligiousSchool();
         this.setCountryFlag = event.getSetCountryFlag();
         this.decision = event.getDecision();
-        this.queen = event.getQueen() == null ? null : new QueenDTO(event.getQueen());
+        this.queen = event.getQueen() == null ? null : new QueenDTO(event.getQueen(), this.date);
         this.monarch = Optional.ofNullable(ObjectUtils.firstNonNull(event.getMonarch(), event.getMonarchHeir(), event.getMonarchConsort(),
                                                                     event.getMonarchForeignHeir()))
-                               .map(MonarchDTO::new)
+                               .map(m -> new MonarchDTO(m, this.date))
                                .orElse(null);
-        this.heir = event.getHeir() == null ? null : new HeirDTO(event.getHeir());
+        this.heir = event.getHeir() == null ? null : new HeirDTO(event.getHeir(), this.date);
         this.union = event.getUnion();
         this.tradePort = event.getTradePort();
         this.elector = event.getElector();
