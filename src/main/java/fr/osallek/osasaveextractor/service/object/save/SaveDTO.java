@@ -82,6 +82,8 @@ public class SaveDTO {
 
     private final List<NamedImageLocalisedDTO> personalities;
 
+    private final List<NamedImageLocalisedDTO> leaderPersonalities;
+
     public SaveDTO(String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions, DoubleConsumer percentCountriesConsumer) {
         this.owner = OsaSaveExtractorApplication.ID;
         this.previousSave = previousSave;
@@ -249,6 +251,20 @@ public class SaveDTO {
                                            .map(personality -> new NamedImageLocalisedDTO(save.getGame().getLocalisation(personality.getName()),
                                                                                           personality.getImage(), personality.getName()))
                                            .toList();
+        this.leaderPersonalities = this.countries.stream()
+                                                 .map(CountryDTO::getHistory)
+                                                 .flatMap(Collection::stream)
+                                                 .map(CountryHistoryDTO::getLeader)
+                                                 .filter(Objects::nonNull)
+                                                 .map(LeaderDTO::getPersonality)
+                                                 .filter(Objects::nonNull)
+                                                 .distinct()
+                                                 .map(s -> save.getGame().getLeaderPersonality(s))
+                                                 .filter(Objects::nonNull)
+                                                 .map(personality -> new NamedImageLocalisedDTO(save.getGame().getLocalisation(personality.getName()),
+                                                                                                personality.getModifiers().getImage(save.getGame()),
+                                                                                                personality.getName()))
+                                                 .toList();
     }
 
     public String getOwner() {
@@ -365,5 +381,9 @@ public class SaveDTO {
 
     public List<NamedImageLocalisedDTO> getPersonalities() {
         return personalities;
+    }
+
+    public List<NamedImageLocalisedDTO> getLeaderPersonalities() {
+        return leaderPersonalities;
     }
 }

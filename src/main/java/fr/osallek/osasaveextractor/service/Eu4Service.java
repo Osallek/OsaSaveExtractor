@@ -36,7 +36,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -469,7 +468,7 @@ public class Eu4Service {
         }
 
         if (CollectionUtils.isNotEmpty(assets.personalities())) {
-            Path cPath = tmpFolder.resolve("personalities");
+            Path cPath = tmpFolder.resolve("modifiers");
             save.getGame()
                 .getRulerPersonalities()
                 .stream()
@@ -484,7 +483,7 @@ public class Eu4Service {
                 });
         }
 
-        if (CollectionUtils.isNotEmpty(assets.modifiers())) {
+        if (CollectionUtils.isNotEmpty(assets.ideas())) {
             Path cPath = tmpFolder.resolve("modifiers");
             save.getGame()
                 .getIdeaGroups()
@@ -493,27 +492,28 @@ public class Eu4Service {
                 .filter(MapUtils::isNotEmpty)
                 .map(Map::entrySet)
                 .flatMap(Collection::stream)
-                .map(entry -> {
-                    AtomicReference<File> image = new AtomicReference<>(null);
-
-                    if (MapUtils.isNotEmpty(entry.getValue().getModifiers())) {
-                        entry.getValue()
-                             .getModifiers()
-                             .keySet()
-                             .stream()
-                             .map(m -> m.getImage(save.getGame()))
-                             .filter(Objects::nonNull)
-                             .findFirst()
-                             .ifPresent(image::set);
-                    }
-
-                    return image.get();
-                })
+                .map(entry -> entry.getValue().getImage(save.getGame()))
                 .filter(Objects::nonNull)
                 .forEach(file -> Constants.getFileChecksum(file).ifPresent(checksum -> {
                     Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
                     toSend.add(cPath.resolve(image));
                 }));
+        }
+
+        if (CollectionUtils.isNotEmpty(assets.leaderPersonalities())) {
+            Path cPath = tmpFolder.resolve("modifiers");
+            save.getGame()
+                .getLeaderPersonalities()
+                .stream()
+                .filter(personality -> assets.leaderPersonalities().contains(personality.getName()))
+                .forEach(personality -> {
+                    File file = personality.getModifiers().getImage(save.getGame());
+
+                    Constants.getFileChecksum(file).ifPresent(checksum -> {
+                        Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                        toSend.add(cPath.resolve(image));
+                    });
+                });
         }
 
         return this.serverService.uploadAssets(toSend, tmpFolder, id);

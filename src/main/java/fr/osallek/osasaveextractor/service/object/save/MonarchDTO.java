@@ -65,7 +65,13 @@ public class MonarchDTO {
         this.birthDate = monarch.getBirthDate();
         this.deathDate = monarch.getDeathDate();
         this.monarchName = ClausewitzUtils.removeQuotes(monarch.getMonarchName());
-        this.leader = monarch.getLeader() == null ? null : new LeaderDTO(monarch.getLeader());
+
+        if (monarch.getLeader() != null) {
+            this.leader = new LeaderDTO(monarch.getLeader());
+            this.leader.setDeathDate(this.deathDate);
+        } else {
+            this.leader = null;
+        }
         this.duration = this.deathDate == null ? null : (int) ChronoUnit.MONTHS.between(date, this.deathDate);
     }
 
@@ -132,6 +138,10 @@ public class MonarchDTO {
     public void setDeathDate(LocalDate deathDate, LocalDate date) {
         this.deathDate = deathDate;
         this.duration = this.deathDate == null ? null : (int) ChronoUnit.MONTHS.between(date, this.deathDate);
+
+        if (this.leader != null) {
+            this.leader.setDeathDate(deathDate);
+        }
     }
 
     public String getMonarchName() {

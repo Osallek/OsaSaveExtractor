@@ -3,6 +3,7 @@ package fr.osallek.osasaveextractor.service.object.save;
 import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.model.save.country.Leader;
 import fr.osallek.eu4parser.model.save.country.LeaderType;
+import java.time.temporal.ChronoUnit;
 import org.apache.commons.lang3.BooleanUtils;
 
 import java.time.LocalDate;
@@ -29,7 +30,9 @@ public class LeaderDTO {
 
     private final LocalDate activation;
 
-    private final LocalDate deathDate;
+    private LocalDate deathDate;
+
+    private Integer duration;
 
     public LeaderDTO(Leader leader) {
         this.id = leader.getId().getId();
@@ -43,6 +46,7 @@ public class LeaderDTO {
         this.personality = leader.getPersonality() == null ? null : leader.getPersonality().getName();
         this.activation = leader.getActivation();
         this.deathDate = leader.getDeathDate();
+        this.duration = (this.deathDate == null || this.activation == null) ? null : (int) ChronoUnit.MONTHS.between(this.activation, this.deathDate);
     }
 
     public int getId() {
@@ -87,5 +91,23 @@ public class LeaderDTO {
 
     public LocalDate getDeathDate() {
         return deathDate;
+    }
+
+    public void setDeathDate(LocalDate deathDate) {
+        if (deathDate != null) {
+            this.deathDate = deathDate;
+
+            if (this.activation != null) {
+                this.duration = (int) ChronoUnit.MONTHS.between(this.activation, this.deathDate);
+            }
+        }
+    }
+
+    public Integer getDuration() {
+        return duration;
+    }
+
+    public void setDuration(Integer duration) {
+        this.duration = duration;
     }
 }

@@ -6,13 +6,14 @@ import org.apache.commons.collections4.CollectionUtils;
 
 public record AssetsDTO(boolean provinces, boolean colors, Set<String> countries, Set<String> advisors, Set<String> institutions, Set<String> buildings,
                         Set<String> religions, Set<String> tradeGoods, Set<String> estates, Set<String> privileges, Set<String> ideaGroups,
-                        Set<String> modifiers, Set<String> personalities) {
+                        Set<String> ideas, Set<String> personalities, Set<String> leaderPersonalities) {
 
     @JsonIgnore
     public boolean isEmpty() {
         return !this.provinces && !this.colors && CollectionUtils.isEmpty(this.countries) && CollectionUtils.isEmpty(this.advisors)
                && CollectionUtils.isEmpty(this.institutions) && CollectionUtils.isEmpty(this.buildings) && CollectionUtils.isEmpty(this.religions)
                && CollectionUtils.isEmpty(this.tradeGoods) && CollectionUtils.isEmpty(this.estates) && CollectionUtils.isEmpty(this.privileges)
-               && CollectionUtils.isEmpty(this.ideaGroups) && CollectionUtils.isEmpty(this.modifiers) && CollectionUtils.isEmpty(this.personalities);
+               && CollectionUtils.isEmpty(this.ideaGroups) && CollectionUtils.isEmpty(this.ideas) && CollectionUtils.isEmpty(this.personalities)
+               && CollectionUtils.isEmpty(this.leaderPersonalities);
     }
 }
