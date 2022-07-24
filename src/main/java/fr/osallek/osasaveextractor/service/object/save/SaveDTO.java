@@ -125,33 +125,33 @@ public class SaveDTO {
         this.countries = c.parallelStream()
                           .map(country -> {
                               CountryDTO countryDTO = new CountryDTO(save, country, save.getDiplomacy(), this.provinces);
-
-                              countryDTO.getHistory().stream().filter(history -> StringUtils.isNotBlank(history.getChangedTagFrom())).forEach(history -> {
-                                  this.provinces.stream()
-                                                .filter(province -> province.isOwnerAt(history.getDate(), history.getChangedTagFrom()))
-                                                .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
-                                  this.provinces.stream() //Add owner when inheriting from decision
-                                                .filter(province -> CollectionUtils.isNotEmpty(province.getHistory())
-                                                                    && province.getHistory().stream().anyMatch(h -> h.getDate().equals(history.getDate())
-                                                                                                                    && country.getTag()
-                                                                                                                              .equals(h.getFakeOwner())))
-                                                .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
-
-                                  countryDTO.setDev(this.provinces.stream()
-                                                                  .filter(p -> p.isOwnerAt(save.getDate(), countryDTO.getTag()))
-                                                                  .mapToDouble(p -> NumbersUtils.doubleOrDefault(p.getBaseTax())
-                                                                                    + NumbersUtils.doubleOrDefault(p.getBaseProduction())
-                                                                                    + NumbersUtils.doubleOrDefault(p.getBaseManpower()))
-                                                                  .sum());
-                                  countryDTO.setNbProvince((int) provinces.stream().filter(p -> p.isOwnerAt(save.getDate(), countryDTO.getTag())).count());
-                              });
-
                               i.getAndIncrement();
                               percentCountriesConsumer.accept((double) i.get() / c.size());
 
                               return countryDTO;
                           })
                           .toList();
+
+        for (CountryDTO countryDTO : this.countries) { //Not in stream to prevent Concurrent modification
+            countryDTO.getHistory().stream().filter(history -> StringUtils.isNotBlank(history.getChangedTagFrom())).forEach(history -> {
+                this.provinces.stream()
+                              .filter(province -> province.isOwnerAt(history.getDate(), history.getChangedTagFrom()))
+                              .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
+                this.provinces.stream() //Add owner when inheriting from decision
+                              .filter(province -> CollectionUtils.isNotEmpty(province.getHistory())
+                                                  && province.getHistory().stream().anyMatch(h -> h.getDate().equals(history.getDate())
+                                                                                                  && countryDTO.getTag().equals(h.getFakeOwner())))
+                              .forEach(province -> province.addOwner(history.getDate(), countryDTO.getTag()));
+
+                countryDTO.setDev(this.provinces.stream()
+                                                .filter(p -> p.isOwnerAt(save.getDate(), countryDTO.getTag()))
+                                                .mapToDouble(p -> NumbersUtils.doubleOrDefault(p.getBaseTax())
+                                                                  + NumbersUtils.doubleOrDefault(p.getBaseProduction())
+                                                                  + NumbersUtils.doubleOrDefault(p.getBaseManpower()))
+                                                .sum());
+                countryDTO.setNbProvince((int) provinces.stream().filter(p -> p.isOwnerAt(save.getDate(), countryDTO.getTag())).count());
+            });
+        }
 
         this.cultures = save.getGame().getCultures().stream().map(culture -> new CultureDTO(save, culture)).toList();
         this.religions = save.getReligions()

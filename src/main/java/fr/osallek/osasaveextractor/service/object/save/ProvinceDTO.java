@@ -3,15 +3,12 @@ package fr.osallek.osasaveextractor.service.object.save;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import fr.osallek.eu4parser.model.save.province.ProvinceBuilding;
 import fr.osallek.eu4parser.model.save.province.SaveProvince;
-import org.apache.commons.lang3.StringUtils;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
 
 public class ProvinceDTO extends SimpleProvinceDTO {
@@ -106,13 +103,13 @@ public class ProvinceDTO extends SimpleProvinceDTO {
     @JsonIgnore
     public boolean isOwnerAt(LocalDate date, String tag) {
         String owner = this.history.get(0).getOwner();
-        for (ProvinceHistoryDTO history : this.history) {
-            if (history.getDate().isAfter(date)) {
+        for (ProvinceHistoryDTO h : this.history) {
+            if (h.getDate().isAfter(date)) {
                 break;
             }
 
-            if (StringUtils.isNotBlank(history.getOwner())) {
-                owner = history.getOwner();
+            if (StringUtils.isNotBlank(h.getOwner())) {
+                owner = h.getOwner();
             }
         }
 
