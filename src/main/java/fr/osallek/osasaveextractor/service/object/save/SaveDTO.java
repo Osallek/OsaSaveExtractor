@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public class SaveDTO {
 
+    private final LocalDate startDate;
     private final String owner;
 
     private final String previousSave;
@@ -85,6 +86,7 @@ public class SaveDTO {
     private final List<NamedImageLocalisedDTO> leaderPersonalities;
 
     public SaveDTO(String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions, DoubleConsumer percentCountriesConsumer) {
+        this.startDate = save.getStartDate();
         this.owner = OsaSaveExtractorApplication.ID;
         this.previousSave = previousSave;
         this.provinceImage = provinceImage;
@@ -265,6 +267,10 @@ public class SaveDTO {
                                                                                                 personality.getModifiers().getImage(save.getGame()),
                                                                                                 personality.getName()))
                                                  .toList();
+    }
+
+    public LocalDate getStartDate() {
+        return startDate;
     }
 
     public String getOwner() {
