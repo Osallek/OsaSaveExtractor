@@ -17,6 +17,18 @@ import fr.osallek.osasaveextractor.service.object.ProgressState;
 import fr.osallek.osasaveextractor.service.object.ProgressStep;
 import fr.osallek.osasaveextractor.service.object.save.SaveDTO;
 import fr.osallek.osasaveextractor.service.object.server.AssetsDTO;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.io.FileExistsException;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSource;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.stereotype.Service;
+
+import javax.imageio.ImageIO;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -39,17 +51,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
-import javax.imageio.ImageIO;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.io.FileExistsException;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.BooleanUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.MessageSource;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.stereotype.Service;
 
 @Service
 public class Eu4Service {
@@ -293,7 +294,8 @@ public class Eu4Service {
                                                  return CompletableFuture.completedFuture(response);
                                              } else {
                                                  try {
-                                                     return sendMissingAssets(response.assetsDTO(), tmpFolder, save, finalColorsFile, provinceFile, religions, response.id())
+                                                     return sendMissingAssets(response.assetsDTO(), tmpFolder, save, finalColorsFile, provinceFile, religions,
+                                                                              response.id())
                                                              .thenCompose(aBoolean -> {
                                                                  if (BooleanUtils.toBoolean(aBoolean)) {
                                                                      return CompletableFuture.completedFuture(response);
@@ -364,7 +366,7 @@ public class Eu4Service {
 
         if (CollectionUtils.isNotEmpty(assets.countries())) {
             Path cPath = tmpFolder.resolve("flags");
-            save.getCountries().values().stream().filter(country -> assets.countries().contains(country.getTag())).forEach(country -> {
+            save.getCountries().values().stream().filter(country -> assets.countries().contains(country.getTag())).distinct().forEach(country -> {
                 if (country.useCustomFlagImage()) {
                     if (country.getWritenTo() != null) {
                         toSend.add(country.getWritenTo());
@@ -382,7 +384,7 @@ public class Eu4Service {
 
         if (CollectionUtils.isNotEmpty(assets.advisors())) {
             Path cPath = tmpFolder.resolve("advisors");
-            save.getGame().getAdvisors().stream().filter(advisor -> assets.advisors().contains(advisor.getName())).forEach(advisor -> {
+            save.getGame().getAdvisors().stream().filter(advisor -> assets.advisors().contains(advisor.getName())).distinct().forEach(advisor -> {
                 File file = advisor.getDefaultImage();
 
                 Constants.getFileChecksum(file).ifPresent(checksum -> {
@@ -394,19 +396,24 @@ public class Eu4Service {
 
         if (CollectionUtils.isNotEmpty(assets.institutions())) {
             Path cPath = tmpFolder.resolve("institutions");
-            save.getGame().getInstitutions().stream().filter(institution -> assets.institutions().contains(institution.getName())).forEach(institution -> {
-                File file = institution.getImage();
+            save.getGame()
+                .getInstitutions()
+                .stream()
+                .filter(institution -> assets.institutions().contains(institution.getName()))
+                .distinct()
+                .forEach(institution -> {
+                    File file = institution.getImage();
 
-                Constants.getFileChecksum(file).ifPresent(checksum -> {
-                    Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                    toSend.add(cPath.resolve(image));
+                    Constants.getFileChecksum(file).ifPresent(checksum -> {
+                        Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                        toSend.add(cPath.resolve(image));
+                    });
                 });
-            });
         }
 
         if (CollectionUtils.isNotEmpty(assets.buildings())) {
             Path cPath = tmpFolder.resolve("buildings");
-            save.getGame().getBuildings().stream().filter(building -> assets.buildings().contains(building.getName())).forEach(building -> {
+            save.getGame().getBuildings().stream().filter(building -> assets.buildings().contains(building.getName())).distinct().forEach(building -> {
                 File file = building.getImage();
 
                 Constants.getFileChecksum(file).ifPresent(checksum -> {
@@ -420,6 +427,7 @@ public class Eu4Service {
             religions.values()
                      .stream()
                      .filter(religion -> assets.religions().contains(religion.getName()))
+                     .distinct()
                      .forEach(religion -> toSend.add(religion.getWritenTo()));
         }
 
@@ -428,6 +436,7 @@ public class Eu4Service {
                 .getTradeGoods()
                 .stream()
                 .filter(good -> assets.tradeGoods().contains(good.getName()))
+                .distinct()
                 .forEach(good -> toSend.add(good.getWritenTo()));
         }
 
@@ -436,6 +445,7 @@ public class Eu4Service {
                 .getEstates()
                 .stream()
                 .filter(estate -> assets.estates().contains(estate.getName()))
+                .distinct()
                 .forEach(estate -> toSend.add(estate.getWritenTo()));
         }
 
@@ -445,6 +455,7 @@ public class Eu4Service {
                 .getEstatePrivileges()
                 .stream()
                 .filter(privilege -> assets.privileges().contains(privilege.getName()))
+                .distinct()
                 .forEach(privilege -> {
                     File file = privilege.getImage();
 
@@ -457,7 +468,7 @@ public class Eu4Service {
 
         if (CollectionUtils.isNotEmpty(assets.ideaGroups())) {
             Path cPath = tmpFolder.resolve("idea_groups");
-            save.getGame().getIdeaGroups().stream().filter(group -> assets.ideaGroups().contains(group.getName())).forEach(group -> {
+            save.getGame().getIdeaGroups().stream().filter(group -> assets.ideaGroups().contains(group.getName())).distinct().forEach(group -> {
                 File file = group.getImage();
 
                 Constants.getFileChecksum(file).ifPresent(checksum -> {
@@ -471,8 +482,9 @@ public class Eu4Service {
             Path cPath = tmpFolder.resolve("modifiers");
             save.getGame()
                 .getRulerPersonalities()
-                .stream()
+                .parallelStream()
                 .filter(personality -> assets.personalities().contains(personality.getName()))
+                .distinct()
                 .forEach(personality -> {
                     File file = personality.getImage();
 
@@ -487,13 +499,15 @@ public class Eu4Service {
             Path cPath = tmpFolder.resolve("modifiers");
             save.getGame()
                 .getIdeaGroups()
-                .stream()
+                .parallelStream()
                 .map(IdeaGroup::getIdeas)
                 .filter(MapUtils::isNotEmpty)
                 .map(Map::entrySet)
                 .flatMap(Collection::stream)
+                .filter(entry -> assets.ideas().contains(entry.getKey()))
                 .map(entry -> entry.getValue().getImage(save.getGame()))
                 .filter(Objects::nonNull)
+                .distinct()
                 .forEach(file -> Constants.getFileChecksum(file).ifPresent(checksum -> {
                     Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
                     toSend.add(cPath.resolve(image));
@@ -504,8 +518,9 @@ public class Eu4Service {
             Path cPath = tmpFolder.resolve("modifiers");
             save.getGame()
                 .getLeaderPersonalities()
-                .stream()
+                .parallelStream()
                 .filter(personality -> assets.leaderPersonalities().contains(personality.getName()))
+                .distinct()
                 .forEach(personality -> {
                     File file = personality.getModifiers().getImage(save.getGame());
 
