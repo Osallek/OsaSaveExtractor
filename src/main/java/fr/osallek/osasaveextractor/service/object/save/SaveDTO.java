@@ -5,8 +5,11 @@ import fr.osallek.eu4parser.model.game.Religion;
 import fr.osallek.eu4parser.model.save.Save;
 import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.eu4parser.model.save.province.SaveProvince;
-import fr.osallek.osasaveextractor.OsaSaveExtractorApplication;
 import fr.osallek.osasaveextractor.common.Constants;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
+
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Collections;
@@ -18,9 +21,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.DoubleConsumer;
 import java.util.function.Predicate;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.StringUtils;
 
 public class SaveDTO {
 
@@ -85,9 +85,10 @@ public class SaveDTO {
 
     private final List<NamedImageLocalisedDTO> leaderPersonalities;
 
-    public SaveDTO(String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions, DoubleConsumer percentCountriesConsumer) {
+    public SaveDTO(String userId, String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions,
+                   DoubleConsumer percentCountriesConsumer) {
         this.startDate = save.getStartDate();
-        this.owner = OsaSaveExtractorApplication.ID;
+        this.owner = userId;
         this.previousSave = previousSave;
         this.provinceImage = provinceImage;
         this.colorsImage = colorsImage;

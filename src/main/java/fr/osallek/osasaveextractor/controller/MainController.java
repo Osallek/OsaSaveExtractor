@@ -1,6 +1,5 @@
 package fr.osallek.osasaveextractor.controller;
 
-import fr.osallek.osasaveextractor.OsaSaveExtractorApplication;
 import fr.osallek.osasaveextractor.common.Constants;
 import fr.osallek.osasaveextractor.config.ApplicationProperties;
 import fr.osallek.osasaveextractor.controller.object.AutoCompleteTextField;
@@ -8,6 +7,7 @@ import fr.osallek.osasaveextractor.controller.object.BootstrapColumn;
 import fr.osallek.osasaveextractor.controller.object.BootstrapPane;
 import fr.osallek.osasaveextractor.controller.object.BootstrapRow;
 import fr.osallek.osasaveextractor.controller.object.LocalSaveListCell;
+import fr.osallek.osasaveextractor.controller.object.SteamIdConverter;
 import fr.osallek.osasaveextractor.service.Eu4Service;
 import fr.osallek.osasaveextractor.service.ServerService;
 import fr.osallek.osasaveextractor.service.object.server.ServerSave;
@@ -35,6 +35,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.kordamp.bootstrapfx.scene.layout.Panel;
 import org.springframework.context.MessageSource;
@@ -45,6 +46,8 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -72,6 +75,8 @@ public class MainController {
 
     private VBox progressVBox;
 
+    private ComboBox<Map.Entry<String, String>> steamIdBox;
+
     private ComboBox<Path> localSavesBox;
 
     private AutoCompleteTextField<ServerSave> serverSavesField;
@@ -81,6 +86,8 @@ public class MainController {
     private final BooleanProperty serverInvalid = new SimpleBooleanProperty(false);
 
     private final BooleanProperty loading = new SimpleBooleanProperty(false);
+
+    private Text errorText;
 
     private Stage stage;
 
@@ -103,14 +110,14 @@ public class MainController {
 
         BootstrapRow errorRow = new BootstrapRow(true);
 
-        Text errorText = new Text(this.messageSource.getMessage("ose.progress.error", null, Locale.getDefault()));
-        errorText.getStyleClass().addAll("alert", "alert-danger");
-        errorText.setTextAlignment(TextAlignment.CENTER);
-        errorText.setVisible(false);
+        this.errorText = new Text(this.messageSource.getMessage("ose.progress.error", null, Locale.getDefault()));
+        this.errorText.getStyleClass().addAll("alert", "alert-danger");
+        this.errorText.setTextAlignment(TextAlignment.CENTER);
+        this.errorText.setVisible(false);
 
         HBox hBox = new HBox();
         hBox.setAlignment(Pos.CENTER);
-        hBox.getChildren().add(errorText);
+        hBox.getChildren().add(this.errorText);
 
         errorRow.addColumn(new BootstrapColumn(hBox, new int[] {12, 12, 10, 8, 6}));
 
@@ -120,6 +127,14 @@ public class MainController {
         title.setMaxWidth(Double.MAX_VALUE);
         title.getStyleClass().add("h1");
         titleRow.addColumn(new BootstrapColumn(title, new int[] {12, 12, 10, 8, 6}));
+
+        this.serverSavesField = new AutoCompleteTextField<>(new LinkedHashMap<>());
+        this.serverSavesField.disableProperty().bind(this.loading);
+        this.serverSavesField.textProperty()
+                             .addListener((observable, oldValue, newValue) ->
+                                                  this.serverSavesInvalid.set(StringUtils.isNotBlank(newValue)
+                                                                              && this.serverSavesField.getEntries().stream().noneMatch(newValue::equals)
+                                                                              && !Constants.UUID_PATTERN.matcher(newValue).matches()));
 
         BootstrapRow idRow = new BootstrapRow(true);
         Panel idPanel = new Panel();
@@ -140,16 +155,35 @@ public class MainController {
 
         idPanel.setHeading(idTitleVbox);
 
-        Label idLabel = new Label(OsaSaveExtractorApplication.ID);
+        if (MapUtils.isEmpty(this.eu4Service.getSteamIds())) {
+            this.serverInvalid.set(true);
+            this.errorText.setText(this.messageSource.getMessage("ose.steam.error", null, Locale.getDefault()));
+            this.errorText.setVisible(true);
+        } else {
+            this.steamIdBox = new ComboBox<>(FXCollections.observableArrayList(this.eu4Service.getSteamIds().entrySet()));
+            this.steamIdBox.getSelectionModel().select(0);
+            this.steamIdBox.setVisibleRowCount(20);
+            this.steamIdBox.setConverter(new SteamIdConverter());
+            this.steamIdBox.setPromptText(this.messageSource.getMessage("ose.id", null, Locale.getDefault()));
+            this.steamIdBox.disableProperty().bind(this.loading.or(this.serverInvalid));
+            this.steamIdBox.selectionModelProperty().addListener((observable, oldValue, newValue) -> {
+                if (!Objects.equals(oldValue, newValue)) {
+                    fetchServerSaves();
+                }
+            });
+        }
+
         Button savesButton = new Button(this.messageSource.getMessage("ose.view-saves", null, Locale.getDefault()));
         savesButton.getStyleClass().addAll("btn", "btn-default");
-        savesButton.setOnAction(
-                event -> this.application.getHostServices().showDocument(this.properties.getServerUrl() + "/user/" + OsaSaveExtractorApplication.ID));
+        savesButton.setOnAction(event -> this.application.getHostServices()
+                                                         .showDocument(this.properties.getFrontUrl() + "/user/" + this.steamIdBox.getSelectionModel()
+                                                                                                                                 .selectedItemProperty()
+                                                                                                                                 .get().getKey()));
 
         HBox idHBox = new HBox();
         idHBox.setSpacing(20);
         idHBox.setAlignment(Pos.CENTER_LEFT);
-        idHBox.getChildren().add(idLabel);
+        idHBox.getChildren().add(this.steamIdBox);
         idHBox.getChildren().add(savesButton);
 
         idPanel.setBody(idHBox);
@@ -192,39 +226,19 @@ public class MainController {
         serverSavesTitleLabel.getStyleClass().addAll("h5", "b");
         serverSavesPanel.setHeading(serverSavesTitleLabel);
 
-        try {
-            SortedSet<ServerSave> serverSaves = this.serverService.getSaves();
-            this.serverInvalid.set(false);
+        Label label = new Label(this.messageSource.getMessage("ose.server-saves.format", null, Locale.getDefault()));
+        label.visibleProperty().bind(this.serverSavesInvalid);
+        label.setTextFill(Color.RED);
 
-            this.serverSavesField = new AutoCompleteTextField<>(serverSaves.stream()
-                                                                           .limit(20)
-                                                                           .collect(Collectors.toMap(s -> s.toString(this.messageSource), Function.identity(),
-                                                                                                     (a, b) -> a, LinkedHashMap::new)));
-            this.serverSavesField.disableProperty().bind(this.loading);
+        VBox vBox = new VBox();
+        vBox.setSpacing(8);
+        vBox.getChildren().add(this.serverSavesField);
+        vBox.getChildren().add(label);
 
-            Label label = new Label(this.messageSource.getMessage("ose.server-saves.format", null, Locale.getDefault()));
-            label.visibleProperty().bind(this.serverSavesInvalid);
-            label.setTextFill(Color.RED);
+        serverSavesPanel.setBody(vBox);
+        serverSavesRow.addColumn(new BootstrapColumn(serverSavesPanel, new int[] {12, 12, 10, 8, 6}));
 
-            this.serverSavesField.textProperty()
-                                 .addListener((observable, oldValue, newValue) ->
-                                                      this.serverSavesInvalid.set(StringUtils.isNotBlank(newValue)
-                                                                                  && this.serverSavesField.getEntries().stream().noneMatch(newValue::equals)
-                                                                                  && !Constants.UUID_PATTERN.matcher(newValue).matches()));
-
-            VBox vBox = new VBox();
-            vBox.setSpacing(8);
-            vBox.getChildren().add(this.serverSavesField);
-            vBox.getChildren().add(label);
-
-            serverSavesPanel.setBody(vBox);
-
-            serverSavesRow.addColumn(new BootstrapColumn(serverSavesPanel, new int[] {12, 12, 10, 8, 6}));
-        } catch (Exception e) {
-            this.serverInvalid.set(true);
-            errorText.setText(this.messageSource.getMessage("ose.server.error", null, Locale.getDefault()));
-            errorText.setVisible(true);
-        }
+        fetchServerSaves();
 
         BootstrapRow actionRow = new BootstrapRow(true);
         Button submitButton = new Button(this.messageSource.getMessage("ose.analyse", null, Locale.getDefault()));
@@ -236,24 +250,25 @@ public class MainController {
                                                               .or(this.serverSavesInvalid)
                                                               .or(this.serverInvalid));
         submitButton.setOnAction(event -> {
-            errorText.setVisible(false);
+            this.errorText.setVisible(false);
             this.finishedButton.setVisible(false);
             this.loading.setValue(true);
             this.progressVBox.setVisible(true);
             this.eu4Service.parseSave(this.localSavesBox.getSelectionModel().selectedItemProperty().get(),
                                       this.serverSavesField.getSelected() != null ? this.serverSavesField.getSelected().id() : this.serverSavesField.getText(),
-                                      s -> errorText.setText(this.messageSource.getMessage("ose.server.error." + s, null, Locale.getDefault())))
+                                      this.steamIdBox.getSelectionModel().selectedItemProperty().get().getKey(),
+                                      s -> this.errorText.setText(this.messageSource.getMessage("ose.server.error." + s, null, Locale.getDefault())))
                            .whenComplete((o, throwable) -> {
                                this.loading.set(false);
 
                                if (throwable == null) {
                                    this.finishedButton.setVisible(true);
                                } else {
-                                   errorText.setVisible(true);
+                                   this.errorText.setVisible(true);
                                }
                            })
                            .thenAccept(unused -> {
-                               this.serverSavesField.setEntries(this.serverService.getSaves()
+                               this.serverSavesField.setEntries(this.serverService.getSaves(this.steamIdBox.getSelectionModel().getSelectedItem().getKey())
                                                                                   .stream()
                                                                                   .limit(20)
                                                                                   .collect(Collectors.toMap(s -> s.toString(this.messageSource),
@@ -297,6 +312,22 @@ public class MainController {
         this.root.addRow(actionRow);
         this.root.addRow(progressRow);
         this.root.addRow(errorRow);
+    }
+
+    private void fetchServerSaves() {
+        try {
+            SortedSet<ServerSave> serverSaves = this.serverService.getSaves(this.steamIdBox.getSelectionModel().getSelectedItem().getKey());
+            this.serverInvalid.set(false);
+
+            this.serverSavesField.setEntries(serverSaves.stream()
+                                                        .limit(20)
+                                                        .collect(Collectors.toMap(s -> s.toString(this.messageSource), Function.identity(), (a, b) -> a,
+                                                                                  LinkedHashMap::new)));
+        } catch (Exception e) {
+            this.serverInvalid.set(true);
+            this.errorText.setText(this.messageSource.getMessage("ose.server.error", null, Locale.getDefault()));
+            this.errorText.setVisible(true);
+        }
     }
 
     public GridPane getScene() throws IOException {

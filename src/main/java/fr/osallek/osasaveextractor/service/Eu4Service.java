@@ -22,6 +22,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.io.FileExistsException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -40,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -66,9 +68,12 @@ public class Eu4Service {
 
     private final ObjectMapper objectMapper;
 
+    private final LinkedHashMap<String, String> steamIds = new LinkedHashMap<>();
+
     private ProgressState state;
 
-    public Eu4Service(MessageSource messageSource, ThreadPoolTaskExecutor executor, ServerService serverService, ObjectMapper objectMapper) throws IOException {
+    public Eu4Service(MessageSource messageSource, ThreadPoolTaskExecutor executor, ServerService serverService,
+                      ObjectMapper objectMapper) throws IOException, InterruptedException {
         this.messageSource = messageSource;
         this.executor = executor;
         this.serverService = serverService;
@@ -77,7 +82,38 @@ public class Eu4Service {
         Optional<Path> installationFolder = Eu4Parser.detectInstallationFolder();
 
         if (installationFolder.isEmpty()) {
-            throw new RuntimeException(); //Todo modal to ask ?
+            throw new RuntimeException();
+        }
+
+        Optional<Path> steamFolder = Eu4Parser.detectSteamFolder().map(path -> path.resolve("userdata"));
+
+        if (steamFolder.isEmpty()) {
+            throw new RuntimeException();
+        }
+
+        if (Files.exists(steamFolder.get()) && Files.isDirectory(steamFolder.get())) {
+            try (Stream<Path> stream = Files.list(steamFolder.get())) {
+                stream.filter(path -> Files.exists(path.resolve("config").resolve("localconfig.vdf")))
+                      .sorted(Comparator.comparing(path -> path.resolve("config").resolve("localconfig.vdf").toFile().lastModified(),
+                                                   Comparator.reverseOrder()))
+                      .forEach(path -> {
+                          try {
+                              Files.readAllLines(path.resolve("config").resolve("localconfig.vdf"))
+                                   .stream()
+                                   .filter(s -> s.contains("PersonaName"))
+                                   .findFirst()
+                                   .ifPresent(s -> {
+                                       String name = StringUtils.trimToNull(StringUtils.remove(StringUtils.remove(s, "\"PersonaName\""), "\""));
+
+                                       if (StringUtils.isNotBlank(name)) {
+                                           this.steamIds.put(path.getFileName().toString(), name);
+                                       }
+                                   });
+                          } catch (IOException ignored) {
+                          }
+                      });
+
+            }
         }
 
         this.launcherSettings = Eu4Parser.loadSettings(installationFolder.get());
@@ -96,7 +132,7 @@ public class Eu4Service {
         return new ArrayList<>();
     }
 
-    public CompletableFuture<Void> parseSave(Path toAnalyse, String previousSave, Consumer<String> error) {
+    public CompletableFuture<Void> parseSave(Path toAnalyse, String previousSave, String userId, Consumer<String> error) {
         this.state = new ProgressState(ProgressStep.NONE, this.messageSource, Locale.getDefault());
         Path tmpFolder = Path.of(FileUtils.getTempDirectoryPath(), UUID.randomUUID().toString());
 
@@ -258,7 +294,7 @@ public class Eu4Service {
                         }
                     });
 
-                SaveDTO saveDTO = new SaveDTO(previousSave, save, provinceChecksum.get(), colorsChecksum.get(), religions,
+                SaveDTO saveDTO = new SaveDTO(userId, previousSave, save, provinceChecksum.get(), colorsChecksum.get(), religions,
                                               value -> {
                                                   this.state.setSubStep(ProgressStep.GENERATING_DATA_COUNTRIES);
                                                   int progress = ProgressStep.GENERATING_DATA_COUNTRIES.progress;
@@ -295,7 +331,7 @@ public class Eu4Service {
                                              } else {
                                                  try {
                                                      return sendMissingAssets(response.assetsDTO(), tmpFolder, save, finalColorsFile, provinceFile, religions,
-                                                                              response.id())
+                                                                              response.id(), userId)
                                                              .thenCompose(aBoolean -> {
                                                                  if (BooleanUtils.toBoolean(aBoolean)) {
                                                                      return CompletableFuture.completedFuture(response);
@@ -341,7 +377,7 @@ public class Eu4Service {
     }
 
     private CompletableFuture<Boolean> sendMissingAssets(AssetsDTO assets, Path tmpFolder, Save save, Path colorsFile, Path provinceFile,
-                                                         Map<String, Religion> religions, String id) throws IOException {
+                                                         Map<String, Religion> religions, String id, String userId) throws IOException {
         List<Path> toSend = new ArrayList<>();
 
         if (assets.provinces()) {
@@ -531,7 +567,7 @@ public class Eu4Service {
                 });
         }
 
-        return this.serverService.uploadAssets(toSend, tmpFolder, id);
+        return this.serverService.uploadAssets(toSend, tmpFolder, id, userId);
     }
 
     public LauncherSettings getLauncherSettings() {
@@ -540,5 +576,9 @@ public class Eu4Service {
 
     public ProgressState getState() {
         return state;
+    }
+
+    public LinkedHashMap<String, String> getSteamIds() {
+        return steamIds;
     }
 }

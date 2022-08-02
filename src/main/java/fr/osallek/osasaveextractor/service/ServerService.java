@@ -3,7 +3,6 @@ package fr.osallek.osasaveextractor.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.osallek.eu4parser.common.ZipUtils;
-import fr.osallek.osasaveextractor.OsaSaveExtractorApplication;
 import fr.osallek.osasaveextractor.common.exception.ServerException;
 import fr.osallek.osasaveextractor.config.ApplicationProperties;
 import fr.osallek.osasaveextractor.controller.object.DataAssetDTO;
@@ -11,13 +10,6 @@ import fr.osallek.osasaveextractor.controller.object.ErrorObject;
 import fr.osallek.osasaveextractor.service.object.save.SaveDTO;
 import fr.osallek.osasaveextractor.service.object.server.ServerSave;
 import fr.osallek.osasaveextractor.service.object.server.UploadResponseDTO;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.concurrent.CompletableFuture;
 import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +26,14 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class ServerService {
@@ -52,10 +52,9 @@ public class ServerService {
         this.restTemplate = restTemplate;
     }
 
-    public SortedSet<ServerSave> getSaves() {
-        ResponseEntity<List<ServerSave>> response = this.restTemplate.exchange(
-                this.properties.getServerUrl() + "/api/save/user/" + OsaSaveExtractorApplication.ID, HttpMethod.GET, null,
-                new ParameterizedTypeReference<>() {});
+    public SortedSet<ServerSave> getSaves(String id) {
+        ResponseEntity<List<ServerSave>> response = this.restTemplate.exchange(this.properties.getServerUrl() + "/api/save/user/" + id, HttpMethod.GET, null,
+                                                                               new ParameterizedTypeReference<>() {});
 
         if (!HttpStatus.OK.equals(response.getStatusCode())) {
             LOGGER.error("An error occurred while retrieving saves from server: {}", response.getStatusCode());
@@ -84,7 +83,7 @@ public class ServerService {
         }
     }
 
-    public CompletableFuture<Boolean> uploadAssets(List<Path> assets, Path root, String id) throws IOException {
+    public CompletableFuture<Boolean> uploadAssets(List<Path> assets, Path root, String id, String userId) throws IOException {
         Path zip = root.resolve("assets.zip");
 
         ZipUtils.zipFolder(root, zip, assets::contains);
@@ -94,7 +93,7 @@ public class ServerService {
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("assets", new FileSystemResource(zip));
-        body.add("data", new DataAssetDTO(OsaSaveExtractorApplication.ID, id));
+        body.add("data", new DataAssetDTO(userId, id));
 
         try {
             ResponseEntity<String> response = this.restTemplate.postForEntity(this.properties.getServerUrl() + "/api/data",
