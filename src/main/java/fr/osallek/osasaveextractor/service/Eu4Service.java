@@ -58,6 +58,8 @@ import java.util.stream.Stream;
 public class Eu4Service {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Eu4Service.class);
+
+    private static final long MAGIC_STEAM_ID = 76561197960265728L;
     private final LauncherSettings launcherSettings;
 
     private final MessageSource messageSource;
@@ -106,7 +108,10 @@ public class Eu4Service {
                                        String name = StringUtils.trimToNull(StringUtils.remove(StringUtils.remove(s, "\"PersonaName\""), "\""));
 
                                        if (StringUtils.isNotBlank(name)) {
-                                           this.steamIds.put(path.getFileName().toString(), name);
+                                           long id = Long.parseLong(path.getFileName().toString());
+                                           id += id < MAGIC_STEAM_ID ? MAGIC_STEAM_ID : 0;
+
+                                           this.steamIds.put(String.valueOf(id), name);
                                        }
                                    });
                           } catch (IOException ignored) {
