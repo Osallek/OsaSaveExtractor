@@ -53,7 +53,7 @@ public class ServerService {
     }
 
     public SortedSet<ServerSave> getSaves(String id) {
-        ResponseEntity<List<ServerSave>> response = this.restTemplate.exchange(this.properties.getServerUrl() + "/api/save/user/" + id, HttpMethod.GET, null,
+        ResponseEntity<List<ServerSave>> response = this.restTemplate.exchange(this.properties.getServerUrl() + "/api/saves/user/" + id, HttpMethod.GET, null,
                                                                                new ParameterizedTypeReference<>() {});
 
         if (!HttpStatus.OK.equals(response.getStatusCode())) {
@@ -71,7 +71,7 @@ public class ServerService {
 
     public CompletableFuture<UploadResponseDTO> uploadData(SaveDTO save) throws JsonProcessingException {
         try {
-            ResponseEntity<String> response = new RestTemplate().postForEntity(this.properties.getServerUrl() + "/api/save", save, String.class);
+            ResponseEntity<String> response = new RestTemplate().postForEntity(this.properties.getServerUrl() + "/api/saves", save, String.class);
 
             if (!response.getStatusCode().is2xxSuccessful()) {
                 return CompletableFuture.failedFuture(new ServerException(this.objectMapper.readValue(response.getBody(), ErrorObject.class).getError()));

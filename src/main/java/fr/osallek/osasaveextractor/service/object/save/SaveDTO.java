@@ -1,7 +1,9 @@
 package fr.osallek.osasaveextractor.service.object.save;
 
+import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.common.NumbersUtils;
 import fr.osallek.eu4parser.model.game.Religion;
+import fr.osallek.eu4parser.model.game.localisation.Eu4Language;
 import fr.osallek.eu4parser.model.save.Save;
 import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.eu4parser.model.save.province.SaveProvince;
@@ -25,7 +27,14 @@ import java.util.function.Predicate;
 public class SaveDTO {
 
     private final LocalDate startDate;
+
     private final String owner;
+
+    private final String country;
+
+    private final String countryName;
+
+    private final String version;
 
     private final String previousSave;
 
@@ -89,6 +98,8 @@ public class SaveDTO {
                    DoubleConsumer percentCountriesConsumer) {
         this.startDate = save.getStartDate();
         this.owner = userId;
+        this.country = save.getPlayedCountry().getTag();
+        this.version = ClausewitzUtils.removeQuotes(save.getSavegameVersions().get(0));
         this.previousSave = previousSave;
         this.provinceImage = provinceImage;
         this.colorsImage = colorsImage;
@@ -113,27 +124,27 @@ public class SaveDTO {
         this.advisors = save.getAdvisors().values().stream().map(AdvisorDTO::new).toList();
 
         AtomicInteger i = new AtomicInteger();
-        List<SaveCountry> c = save.getCountries()
-                                  .values()
-                                  .stream()
-                                  .filter(Predicate.not(SaveCountry::isObserver))
-                                  .filter(country -> !"REB".equals(country.getTag()))
-                                  .filter(country -> country.getHistory() != null)
-                                  .filter(country -> CollectionUtils.isNotEmpty(country.getHistory().getEvents()))
-                                  .filter(country -> country.getHistory()
-                                                            .getEvents()
-                                                            .stream()
-                                                            .anyMatch(event -> event.getDate().isAfter(country.getSave().getStartDate())))
-                                  .toList();
-        this.countries = c.parallelStream()
-                          .map(country -> {
-                              CountryDTO countryDTO = new CountryDTO(save, country, save.getDiplomacy(), this.provinces);
-                              i.getAndIncrement();
-                              percentCountriesConsumer.accept((double) i.get() / c.size());
+        List<SaveCountry> list = save.getCountries()
+                                     .values()
+                                     .stream()
+                                     .filter(Predicate.not(SaveCountry::isObserver))
+                                     .filter(country -> !"REB".equals(country.getTag()))
+                                     .filter(country -> country.getHistory() != null)
+                                     .filter(country -> CollectionUtils.isNotEmpty(country.getHistory().getEvents()))
+                                     .filter(country -> country.getHistory()
+                                                               .getEvents()
+                                                               .stream()
+                                                               .anyMatch(event -> event.getDate().isAfter(country.getSave().getStartDate())))
+                                     .toList();
+        this.countries = list.parallelStream()
+                             .map(country -> {
+                                 CountryDTO countryDTO = new CountryDTO(save, country, save.getDiplomacy(), this.provinces);
+                                 i.getAndIncrement();
+                                 percentCountriesConsumer.accept((double) i.get() / list.size());
 
-                              return countryDTO;
-                          })
-                          .toList();
+                                 return countryDTO;
+                             })
+                             .toList();
 
         for (CountryDTO countryDTO : this.countries) { //Not in stream to prevent Concurrent modification
             countryDTO.getHistory().stream().filter(history -> StringUtils.isNotBlank(history.getChangedTagFrom())).forEach(history -> {
@@ -268,6 +279,12 @@ public class SaveDTO {
                                                                                                 personality.getModifiers().getImage(save.getGame()),
                                                                                                 personality.getName()))
                                                  .toList();
+
+        this.countryName = this.countries.stream()
+                                         .filter(c -> this.country.equals(c.getTag()))
+                                         .findFirst()
+                                         .map(c -> c.getLocalisations().get(Eu4Language.getDefault()))
+                                         .orElse(null);
     }
 
     public LocalDate getStartDate() {
@@ -276,6 +293,18 @@ public class SaveDTO {
 
     public String getOwner() {
         return owner;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public String getCountryName() {
+        return countryName;
+    }
+
+    public String getVersion() {
+        return version;
     }
 
     public String getPreviousSave() {

@@ -23,6 +23,7 @@ import org.apache.commons.io.FileExistsException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -96,6 +97,7 @@ public class Eu4Service {
         if (Files.exists(steamFolder.get()) && Files.isDirectory(steamFolder.get())) {
             try (Stream<Path> stream = Files.list(steamFolder.get())) {
                 stream.filter(path -> Files.exists(path.resolve("config").resolve("localconfig.vdf")))
+                      .filter(path -> NumberUtils.isParsable(path.getFileName().toString()))
                       .sorted(Comparator.comparing(path -> path.resolve("config").resolve("localconfig.vdf").toFile().lastModified(),
                                                    Comparator.reverseOrder()))
                       .forEach(path -> {

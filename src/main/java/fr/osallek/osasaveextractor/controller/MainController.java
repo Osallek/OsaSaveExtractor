@@ -129,7 +129,7 @@ public class MainController {
         titleRow.addColumn(new BootstrapColumn(title, new int[] {12, 12, 10, 8, 6}));
 
         this.serverSavesField = new AutoCompleteTextField<>(new LinkedHashMap<>());
-        this.serverSavesField.disableProperty().bind(this.loading);
+        this.serverSavesField.disableProperty().bind(this.loading.or(this.serverInvalid));
         this.serverSavesField.textProperty()
                              .addListener((observable, oldValue, newValue) ->
                                                   this.serverSavesInvalid.set(StringUtils.isNotBlank(newValue)
@@ -155,7 +155,17 @@ public class MainController {
 
         idPanel.setHeading(idTitleVbox);
 
+        Button savesButton = new Button(this.messageSource.getMessage("ose.view-saves", null, Locale.getDefault()));
+        savesButton.getStyleClass().addAll("btn", "btn-default");
+        savesButton.setOnAction(event -> this.application.getHostServices()
+                                                         .showDocument(this.properties.getFrontUrl() + "/user/" + this.steamIdBox.getSelectionModel()
+                                                                                                                                 .selectedItemProperty()
+                                                                                                                                 .get().getKey()));
+
         if (MapUtils.isEmpty(this.eu4Service.getSteamIds())) {
+            this.steamIdBox = new ComboBox<>();
+            this.steamIdBox.setDisable(true);
+            savesButton.setDisable(true);
             this.serverInvalid.set(true);
             this.errorText.setText(this.messageSource.getMessage("ose.steam.error", null, Locale.getDefault()));
             this.errorText.setVisible(true);
@@ -172,13 +182,6 @@ public class MainController {
                 }
             });
         }
-
-        Button savesButton = new Button(this.messageSource.getMessage("ose.view-saves", null, Locale.getDefault()));
-        savesButton.getStyleClass().addAll("btn", "btn-default");
-        savesButton.setOnAction(event -> this.application.getHostServices()
-                                                         .showDocument(this.properties.getFrontUrl() + "/user/" + this.steamIdBox.getSelectionModel()
-                                                                                                                                 .selectedItemProperty()
-                                                                                                                                 .get().getKey()));
 
         HBox idHBox = new HBox();
         idHBox.setSpacing(20);
