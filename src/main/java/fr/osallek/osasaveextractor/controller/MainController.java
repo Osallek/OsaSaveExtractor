@@ -22,6 +22,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Border;
@@ -45,6 +46,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.SortedSet;
@@ -76,7 +78,7 @@ public class MainController {
 
     private ComboBox<Map.Entry<String, String>> steamIdBox;
 
-    private ComboBox<Path> localSavesBox;
+    private ComboBox<Path> localSavesCombo;
 
     private AutoCompleteTextField<ServerSave> serverSavesField;
 
@@ -85,6 +87,8 @@ public class MainController {
     private final BooleanProperty serverInvalid = new SimpleBooleanProperty(false);
 
     private final BooleanProperty loading = new SimpleBooleanProperty(false);
+
+    private TextField saveNameField;
 
     private Text errorText;
 
@@ -204,14 +208,38 @@ public class MainController {
         List<Path> localSaves = this.eu4Service.getSaves();
 
         if (CollectionUtils.isNotEmpty(localSaves)) {
-            this.localSavesBox = new ComboBox<>(FXCollections.observableArrayList(localSaves));
-            this.localSavesBox.setVisibleRowCount(20);
-            this.localSavesBox.setCellFactory(param -> new LocalSaveListCell(this.eu4Service));
-            this.localSavesBox.setButtonCell(new LocalSaveListCell(this.eu4Service));
-            this.localSavesBox.setPromptText(this.messageSource.getMessage("ose.local-saves.choose", null,
-                                                                           Constants.LOCALE));
-            this.localSavesBox.disableProperty().bind(this.loading.or(this.serverInvalid));
-            localSavesPanel.setBody(this.localSavesBox);
+            this.localSavesCombo = new ComboBox<>(FXCollections.observableArrayList(localSaves));
+            this.localSavesCombo.setVisibleRowCount(20);
+            this.localSavesCombo.setCellFactory(param -> new LocalSaveListCell(this.eu4Service));
+            this.localSavesCombo.setButtonCell(new LocalSaveListCell(this.eu4Service));
+            this.localSavesCombo.setPromptText(this.messageSource.getMessage("ose.local-saves.choose", null,
+                                                                             Constants.LOCALE));
+            this.localSavesCombo.disableProperty().bind(this.loading.or(this.serverInvalid));
+            this.localSavesCombo.getSelectionModel()
+                                .selectedItemProperty()
+                                .addListener((observable, oldValue, newValue) -> this.saveNameField.setText(newValue == null ? null : newValue.getFileName().toString()));
+
+            this.saveNameField = new TextField();
+            this.saveNameField.setPrefWidth(300);
+            this.saveNameField.visibleProperty().bind(this.localSavesCombo.getSelectionModel().selectedIndexProperty().isNotEqualTo(-1));
+
+            Label saveNameLabel = new Label(this.messageSource.getMessage("osa.name", null, Constants.LOCALE));
+            saveNameLabel.visibleProperty().bind(this.saveNameField.visibleProperty());
+            saveNameLabel.setTextAlignment(TextAlignment.RIGHT);
+            saveNameLabel.setMinWidth(40);
+
+            HBox saveNameBox = new HBox();
+            saveNameBox.setSpacing(3);
+            saveNameBox.setAlignment(Pos.CENTER_LEFT);
+            saveNameBox.getChildren().add(saveNameLabel);
+            saveNameBox.getChildren().add(this.saveNameField);
+
+            HBox localSavesBox = new HBox();
+            localSavesBox.setSpacing(20);
+            localSavesBox.getChildren().add(this.localSavesCombo);
+            localSavesBox.getChildren().add(saveNameBox);
+
+            localSavesPanel.setBody(localSavesBox);
         } else {
             localSavesPanel.setBody(new Text(this.messageSource.getMessage("ose.saves.none", null,
                                                                            Constants.LOCALE)));
@@ -223,19 +251,27 @@ public class MainController {
         Panel serverSavesPanel = new Panel();
         serverSavesPanel.getStyleClass().add("panel-default");
 
-        Label serverSavesTitleLabel = new Label(this.messageSource.getMessage("ose.server-saves", null,
-                                                                              Constants.LOCALE));
+        Label serverSavesTitleLabel = new Label(this.messageSource.getMessage("ose.server-saves", null, Constants.LOCALE));
         serverSavesTitleLabel.getStyleClass().addAll("h5", "b");
-        serverSavesPanel.setHeading(serverSavesTitleLabel);
 
-        Label label = new Label(this.messageSource.getMessage("ose.server-saves.format", null, Constants.LOCALE));
-        label.visibleProperty().bind(this.serverSavesInvalid);
-        label.setTextFill(Color.RED);
+        Label serverSavesSubTitleLabel = new Label(this.messageSource.getMessage("ose.server-saves.help", null, Constants.LOCALE));
+        serverSavesSubTitleLabel.setPadding(new Insets(5, 0, 0, 0));
+        serverSavesSubTitleLabel.getStyleClass().addAll("h6", "text-mute");
+
+        VBox serverSavesTitleVbox = new VBox();
+        serverSavesTitleVbox.getChildren().add(serverSavesTitleLabel);
+        serverSavesTitleVbox.getChildren().add(serverSavesSubTitleLabel);
+
+        serverSavesPanel.setHeading(serverSavesTitleVbox);
+
+        Label formatLabel = new Label(this.messageSource.getMessage("ose.server-saves.format", null, Constants.LOCALE));
+        formatLabel.visibleProperty().bind(this.serverSavesInvalid);
+        formatLabel.setTextFill(Color.RED);
 
         VBox vBox = new VBox();
         vBox.setSpacing(8);
         vBox.getChildren().add(this.serverSavesField);
-        vBox.getChildren().add(label);
+        vBox.getChildren().add(formatLabel);
 
         serverSavesPanel.setBody(vBox);
         serverSavesRow.addColumn(new BootstrapColumn(serverSavesPanel, new int[] {12, 12, 10, 8, 6}));
@@ -245,18 +281,19 @@ public class MainController {
         BootstrapRow actionRow = new BootstrapRow(true);
         Button submitButton = new Button(this.messageSource.getMessage("ose.analyse", null, Constants.LOCALE));
         submitButton.getStyleClass().addAll("btn", "btn-primary");
-        submitButton.disableProperty().bind(this.localSavesBox.getSelectionModel()
-                                                              .selectedItemProperty()
-                                                              .isNull()
-                                                              .or(this.loading)
-                                                              .or(this.serverSavesInvalid)
-                                                              .or(this.serverInvalid));
+        submitButton.disableProperty().bind(this.localSavesCombo.getSelectionModel()
+                                                                .selectedItemProperty()
+                                                                .isNull()
+                                                                .or(this.loading)
+                                                                .or(this.serverSavesInvalid)
+                                                                .or(this.serverInvalid));
         submitButton.setOnAction(event -> {
             this.errorText.setVisible(false);
             this.finishedButton.setVisible(false);
             this.loading.setValue(true);
             this.progressVBox.setVisible(true);
-            this.eu4Service.parseSave(this.localSavesBox.getSelectionModel().selectedItemProperty().get(),
+            this.eu4Service.parseSave(this.localSavesCombo.getSelectionModel().selectedItemProperty().get(),
+                                      this.saveNameField.getText(),
                                       this.serverSavesField.getSelected() != null ? this.serverSavesField.getSelected().id() : this.serverSavesField.getText(),
                                       this.steamIdBox.getSelectionModel().selectedItemProperty().get().getKey(),
                                       s -> this.errorText.setText(this.messageSource.getMessage("ose.server.error." + s, null, Constants.LOCALE)))
@@ -277,7 +314,7 @@ public class MainController {
                                                                                                             Function.identity(),
                                                                                                             (a, b) -> a, LinkedHashMap::new)));
                                Platform.runLater(() -> {
-                                   this.localSavesBox.getSelectionModel().clearSelection();
+                                   this.localSavesCombo.getSelectionModel().clearSelection();
                                    this.serverSavesField.clear();
                                });
                            });

@@ -128,8 +128,14 @@ public class Eu4Service {
     public List<Path> getSaves() throws IOException {
         if (Files.exists(this.launcherSettings.getSavesFolder()) && Files.isDirectory(this.launcherSettings.getSavesFolder())) {
             try (Stream<Path> stream = Files.walk(this.launcherSettings.getSavesFolder())) {
-                //Todo filter ironman
                 return stream.filter(path -> path.getFileName().toString().endsWith(".eu4"))
+                             .filter(path -> {
+                                 try {
+                                     return !Eu4Parser.isIronman(path);
+                                 } catch (IOException e) {
+                                     return false;
+                                 }
+                             })
                              .sorted(Comparator.comparing(t -> t.toFile().lastModified(), Comparator.reverseOrder()))
                              .toList();
             }
@@ -138,7 +144,7 @@ public class Eu4Service {
         return new ArrayList<>();
     }
 
-    public CompletableFuture<Void> parseSave(Path toAnalyse, String previousSave, String userId, Consumer<String> error) {
+    public CompletableFuture<Void> parseSave(Path toAnalyse, String name, String previousSave, String userId, Consumer<String> error) {
         this.state = new ProgressState(ProgressStep.NONE, this.messageSource, Constants.LOCALE);
         Path tmpFolder = Path.of(FileUtils.getTempDirectoryPath(), UUID.randomUUID().toString());
 
@@ -300,7 +306,7 @@ public class Eu4Service {
                         }
                     });
 
-                SaveDTO saveDTO = new SaveDTO(userId, previousSave, save, provinceChecksum.get(), colorsChecksum.get(), religions,
+                SaveDTO saveDTO = new SaveDTO(userId, name, previousSave, save, provinceChecksum.get(), colorsChecksum.get(), religions,
                                               value -> {
                                                   this.state.setSubStep(ProgressStep.GENERATING_DATA_COUNTRIES);
                                                   int progress = ProgressStep.GENERATING_DATA_COUNTRIES.progress;

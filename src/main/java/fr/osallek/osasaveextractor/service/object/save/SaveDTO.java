@@ -93,7 +93,7 @@ public class SaveDTO {
 
     private final List<NamedImageLocalisedDTO> leaderPersonalities;
 
-    public SaveDTO(String userId, String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions,
+    public SaveDTO(String userId, String name, String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions,
                    DoubleConsumer percentCountriesConsumer) {
         this.startDate = save.getStartDate();
         this.owner = userId;
@@ -102,7 +102,7 @@ public class SaveDTO {
         this.previousSave = previousSave;
         this.provinceImage = provinceImage;
         this.colorsImage = colorsImage;
-        this.name = save.getName();
+        this.name = name;
         this.date = save.getDate();
         this.nbProvinces = Collections.max(save.getGame().getProvinces().keySet()); //Get the greatest link
         this.teams = CollectionUtils.isNotEmpty(save.getTeams()) ? save.getTeams().stream().map(TeamDTO::new).toList() : null;
