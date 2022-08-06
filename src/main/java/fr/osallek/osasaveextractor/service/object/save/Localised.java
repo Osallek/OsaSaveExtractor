@@ -20,6 +20,10 @@ public class Localised {
         }
     }
 
+    public Localised(Localised other) {
+        this.localisations = other.localisations;
+    }
+
     public Map<Eu4Language, String> getLocalisations() {
         return localisations;
     }

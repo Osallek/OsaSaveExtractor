@@ -3,7 +3,6 @@ package fr.osallek.osasaveextractor.service.object.save;
 import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.common.NumbersUtils;
 import fr.osallek.eu4parser.model.game.Religion;
-import fr.osallek.eu4parser.model.game.localisation.Eu4Language;
 import fr.osallek.eu4parser.model.save.Save;
 import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.eu4parser.model.save.province.SaveProvince;
@@ -32,7 +31,7 @@ public class SaveDTO {
 
     private final String country;
 
-    private final String countryName;
+    private final Localised countryName;
 
     private final String version;
 
@@ -280,11 +279,7 @@ public class SaveDTO {
                                                                                                 personality.getName()))
                                                  .toList();
 
-        this.countryName = this.countries.stream()
-                                         .filter(c -> this.country.equals(c.getTag()))
-                                         .findFirst()
-                                         .map(c -> c.getLocalisations().get(Eu4Language.getDefault()))
-                                         .orElse(null);
+        this.countryName = this.countries.stream().filter(c -> this.country.equals(c.getTag())).findFirst().map(Localised::new).orElse(null);
     }
 
     public LocalDate getStartDate() {
@@ -299,7 +294,7 @@ public class SaveDTO {
         return country;
     }
 
-    public String getCountryName() {
+    public Localised getCountryName() {
         return countryName;
     }
 
