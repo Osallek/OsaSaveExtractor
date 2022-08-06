@@ -45,7 +45,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.SortedSet;
@@ -110,7 +109,7 @@ public class MainController {
 
         BootstrapRow errorRow = new BootstrapRow(true);
 
-        this.errorText = new Text(this.messageSource.getMessage("ose.progress.error", null, Locale.getDefault()));
+        this.errorText = new Text(this.messageSource.getMessage("ose.progress.error", null, Constants.LOCALE));
         this.errorText.getStyleClass().addAll("alert", "alert-danger");
         this.errorText.setTextAlignment(TextAlignment.CENTER);
         this.errorText.setVisible(false);
@@ -142,10 +141,10 @@ public class MainController {
         idPanel.setMaxWidth(Double.MAX_VALUE);
         idPanel.setBorder(new Border(new BorderStroke(Color.VIOLET, BorderStrokeStyle.SOLID, null, null)));
 
-        Label idTitleLabel = new Label(this.messageSource.getMessage("ose.id", null, Locale.getDefault()));
+        Label idTitleLabel = new Label(this.messageSource.getMessage("ose.id", null, Constants.LOCALE));
         idTitleLabel.getStyleClass().addAll("h5", "b");
 
-        Label idSubTitleLabel = new Label(this.messageSource.getMessage("ose.id.desc", null, Locale.getDefault()));
+        Label idSubTitleLabel = new Label(this.messageSource.getMessage("ose.id.desc", null, Constants.LOCALE));
         idSubTitleLabel.setPadding(new Insets(5, 0, 0, 0));
         idSubTitleLabel.getStyleClass().addAll("h6", "text-mute");
 
@@ -155,7 +154,7 @@ public class MainController {
 
         idPanel.setHeading(idTitleVbox);
 
-        Button savesButton = new Button(this.messageSource.getMessage("ose.view-saves", null, Locale.getDefault()));
+        Button savesButton = new Button(this.messageSource.getMessage("ose.view-saves", null, Constants.LOCALE));
         savesButton.getStyleClass().addAll("btn", "btn-default");
         savesButton.setOnAction(event -> this.application.getHostServices()
                                                          .showDocument(this.properties.getFrontUrl() + "/user/" + this.steamIdBox.getSelectionModel()
@@ -167,14 +166,14 @@ public class MainController {
             this.steamIdBox.setDisable(true);
             savesButton.setDisable(true);
             this.serverInvalid.set(true);
-            this.errorText.setText(this.messageSource.getMessage("ose.steam.error", null, Locale.getDefault()));
+            this.errorText.setText(this.messageSource.getMessage("ose.steam.error", null, Constants.LOCALE));
             this.errorText.setVisible(true);
         } else {
             this.steamIdBox = new ComboBox<>(FXCollections.observableArrayList(this.eu4Service.getSteamIds().entrySet()));
             this.steamIdBox.getSelectionModel().select(0);
             this.steamIdBox.setVisibleRowCount(20);
             this.steamIdBox.setConverter(new SteamIdConverter());
-            this.steamIdBox.setPromptText(this.messageSource.getMessage("ose.id", null, Locale.getDefault()));
+            this.steamIdBox.setPromptText(this.messageSource.getMessage("ose.id", null, Constants.LOCALE));
             this.steamIdBox.disableProperty().bind(this.loading.or(this.serverInvalid));
             this.steamIdBox.selectionModelProperty().addListener((observable, oldValue, newValue) -> {
                 if (!Objects.equals(oldValue, newValue)) {
@@ -198,7 +197,7 @@ public class MainController {
         localSavesPanel.getStyleClass().add("panel-default");
 
         Label localSavesTitleLabel = new Label(this.messageSource.getMessage("ose.local-saves", null,
-                                                                             Locale.getDefault()));
+                                                                             Constants.LOCALE));
         localSavesTitleLabel.getStyleClass().addAll("h5", "b");
         localSavesPanel.setHeading(localSavesTitleLabel);
 
@@ -210,12 +209,12 @@ public class MainController {
             this.localSavesBox.setCellFactory(param -> new LocalSaveListCell(this.eu4Service));
             this.localSavesBox.setButtonCell(new LocalSaveListCell(this.eu4Service));
             this.localSavesBox.setPromptText(this.messageSource.getMessage("ose.local-saves.choose", null,
-                                                                           Locale.getDefault()));
+                                                                           Constants.LOCALE));
             this.localSavesBox.disableProperty().bind(this.loading.or(this.serverInvalid));
             localSavesPanel.setBody(this.localSavesBox);
         } else {
             localSavesPanel.setBody(new Text(this.messageSource.getMessage("ose.saves.none", null,
-                                                                           Locale.getDefault())));
+                                                                           Constants.LOCALE)));
         }
 
         localSavesRow.addColumn(new BootstrapColumn(localSavesPanel, new int[] {12, 12, 10, 8, 6}));
@@ -225,11 +224,11 @@ public class MainController {
         serverSavesPanel.getStyleClass().add("panel-default");
 
         Label serverSavesTitleLabel = new Label(this.messageSource.getMessage("ose.server-saves", null,
-                                                                              Locale.getDefault()));
+                                                                              Constants.LOCALE));
         serverSavesTitleLabel.getStyleClass().addAll("h5", "b");
         serverSavesPanel.setHeading(serverSavesTitleLabel);
 
-        Label label = new Label(this.messageSource.getMessage("ose.server-saves.format", null, Locale.getDefault()));
+        Label label = new Label(this.messageSource.getMessage("ose.server-saves.format", null, Constants.LOCALE));
         label.visibleProperty().bind(this.serverSavesInvalid);
         label.setTextFill(Color.RED);
 
@@ -244,7 +243,7 @@ public class MainController {
         fetchServerSaves();
 
         BootstrapRow actionRow = new BootstrapRow(true);
-        Button submitButton = new Button(this.messageSource.getMessage("ose.analyse", null, Locale.getDefault()));
+        Button submitButton = new Button(this.messageSource.getMessage("ose.analyse", null, Constants.LOCALE));
         submitButton.getStyleClass().addAll("btn", "btn-primary");
         submitButton.disableProperty().bind(this.localSavesBox.getSelectionModel()
                                                               .selectedItemProperty()
@@ -260,7 +259,7 @@ public class MainController {
             this.eu4Service.parseSave(this.localSavesBox.getSelectionModel().selectedItemProperty().get(),
                                       this.serverSavesField.getSelected() != null ? this.serverSavesField.getSelected().id() : this.serverSavesField.getText(),
                                       this.steamIdBox.getSelectionModel().selectedItemProperty().get().getKey(),
-                                      s -> this.errorText.setText(this.messageSource.getMessage("ose.server.error." + s, null, Locale.getDefault())))
+                                      s -> this.errorText.setText(this.messageSource.getMessage("ose.server.error." + s, null, Constants.LOCALE)))
                            .whenComplete((o, throwable) -> {
                                this.loading.set(false);
 
@@ -296,7 +295,7 @@ public class MainController {
 
         this.progressText = new Text("Progress");
 
-        this.finishedButton = new Button(this.messageSource.getMessage("ose.view-save", null, Locale.getDefault()));
+        this.finishedButton = new Button(this.messageSource.getMessage("ose.view-save", null, Constants.LOCALE));
         this.finishedButton.getStyleClass().addAll("btn", "btn-primary");
         this.finishedButton.setVisible(false);
         this.finishedButton.setOnAction(event -> this.application.getHostServices().showDocument(this.eu4Service.getState().getLink()));
@@ -328,7 +327,7 @@ public class MainController {
                                                                                   LinkedHashMap::new)));
         } catch (Exception e) {
             this.serverInvalid.set(true);
-            this.errorText.setText(this.messageSource.getMessage("ose.server.error", null, Locale.getDefault()));
+            this.errorText.setText(this.messageSource.getMessage("ose.server.error", null, Constants.LOCALE));
             this.errorText.setVisible(true);
         }
     }

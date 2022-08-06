@@ -44,7 +44,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -140,7 +139,7 @@ public class Eu4Service {
     }
 
     public CompletableFuture<Void> parseSave(Path toAnalyse, String previousSave, String userId, Consumer<String> error) {
-        this.state = new ProgressState(ProgressStep.NONE, this.messageSource, Locale.getDefault());
+        this.state = new ProgressState(ProgressStep.NONE, this.messageSource, Constants.LOCALE);
         Path tmpFolder = Path.of(FileUtils.getTempDirectoryPath(), UUID.randomUUID().toString());
 
         return this.executor.submitListenable(() -> {
