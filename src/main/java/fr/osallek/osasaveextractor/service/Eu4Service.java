@@ -424,7 +424,10 @@ public class Eu4Service {
 
                     Constants.getFileChecksum(file).ifPresent(checksum -> {
                         Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                        toSend.add(cPath.resolve(image));
+
+                        if (image != null) {
+                            toSend.add(cPath.resolve(image));
+                        }
                     });
                 }
             });
@@ -437,7 +440,10 @@ public class Eu4Service {
 
                 Constants.getFileChecksum(file).ifPresent(checksum -> {
                     Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                    toSend.add(cPath.resolve(image));
+
+                    if (image != null) {
+                        toSend.add(cPath.resolve(image));
+                    }
                 });
             });
         }
@@ -454,7 +460,10 @@ public class Eu4Service {
 
                     Constants.getFileChecksum(file).ifPresent(checksum -> {
                         Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                        toSend.add(cPath.resolve(image));
+
+                        if (image != null) {
+                            toSend.add(cPath.resolve(image));
+                        }
                     });
                 });
         }
@@ -466,7 +475,10 @@ public class Eu4Service {
 
                 Constants.getFileChecksum(file).ifPresent(checksum -> {
                     Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                    toSend.add(cPath.resolve(image));
+
+                    if (image != null) {
+                        toSend.add(cPath.resolve(image));
+                    }
                 });
             });
         }
@@ -509,7 +521,10 @@ public class Eu4Service {
 
                     Constants.getFileChecksum(file).ifPresent(checksum -> {
                         Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                        toSend.add(cPath.resolve(image));
+
+                        if (image != null) {
+                            toSend.add(cPath.resolve(image));
+                        }
                     });
                 });
         }
@@ -521,7 +536,10 @@ public class Eu4Service {
 
                 Constants.getFileChecksum(file).ifPresent(checksum -> {
                     Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                    toSend.add(cPath.resolve(image));
+
+                    if (image != null) {
+                        toSend.add(cPath.resolve(image));
+                    }
                 });
             });
         }
@@ -538,7 +556,10 @@ public class Eu4Service {
 
                     Constants.getFileChecksum(file).ifPresent(checksum -> {
                         Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                        toSend.add(cPath.resolve(image));
+
+                        if (image != null) {
+                            toSend.add(cPath.resolve(image));
+                        }
                     });
                 });
         }
@@ -558,7 +579,10 @@ public class Eu4Service {
                 .distinct()
                 .forEach(file -> Constants.getFileChecksum(file).ifPresent(checksum -> {
                     Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                    toSend.add(cPath.resolve(image));
+
+                    if (image != null) {
+                        toSend.add(cPath.resolve(image));
+                    }
                 }));
         }
 
@@ -574,7 +598,10 @@ public class Eu4Service {
 
                     Constants.getFileChecksum(file).ifPresent(checksum -> {
                         Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                        toSend.add(cPath.resolve(image));
+
+                        if (image != null) {
+                            toSend.add(cPath.resolve(image));
+                        }
                     });
                 });
         }
@@ -591,7 +618,10 @@ public class Eu4Service {
 
                     Constants.getFileChecksum(file).ifPresent(checksum -> {
                         Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
-                        toSend.add(cPath.resolve(image));
+
+                        if (image != null) {
+                            toSend.add(cPath.resolve(image));
+                        }
                     });
                 });
         }

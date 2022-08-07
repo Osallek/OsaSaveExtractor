@@ -222,6 +222,7 @@ public class MainController {
             this.saveNameField = new TextField();
             this.saveNameField.setPrefWidth(300);
             this.saveNameField.visibleProperty().bind(this.localSavesCombo.getSelectionModel().selectedIndexProperty().isNotEqualTo(-1));
+            this.saveNameField.disableProperty().bind(this.localSavesCombo.disableProperty());
 
             Label saveNameLabel = new Label(this.messageSource.getMessage("osa.name", null, Constants.LOCALE));
             saveNameLabel.visibleProperty().bind(this.saveNameField.visibleProperty());
