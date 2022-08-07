@@ -3,6 +3,7 @@ package fr.osallek.osasaveextractor.service.object.save;
 import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.common.NumbersUtils;
 import fr.osallek.eu4parser.model.game.Culture;
+import fr.osallek.eu4parser.model.game.Mission;
 import fr.osallek.eu4parser.model.save.Save;
 import fr.osallek.eu4parser.model.save.country.Expense;
 import fr.osallek.eu4parser.model.save.country.Income;
@@ -13,19 +14,21 @@ import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.eu4parser.model.save.diplomacy.DatableRelation;
 import fr.osallek.eu4parser.model.save.diplomacy.Diplomacy;
 import fr.osallek.eu4parser.model.save.diplomacy.Subsidies;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 
 public class CountryDTO extends ImageLocalised {
 
@@ -78,7 +81,9 @@ public class CountryDTO extends ImageLocalised {
 
     private final List<CustomNationalIdeaDTO> customNationalIdeas;
 
-    //    private final Missions countryMissions; //Todo completed
+    private final List<String> missions;
+
+    private final List<String> completedMissions;
 
     private final SortedMap<Integer, Integer> incomeStatistics;
 
@@ -222,6 +227,8 @@ public class CountryDTO extends ImageLocalised {
                                                                                                              .stream()
                                                                                                              .map(CustomNationalIdeaDTO::new)
                                                                                                              .toList();
+        this.missions = country.getCountryMissions().getMissions().stream().map(Mission::getName).toList();
+        this.completedMissions = country.getCompletedMissions().stream().map(Mission::getName).filter(Objects::nonNull).toList();
         this.incomeStatistics = country.getIncomeStatistics();
         this.nationSizeStatistics = country.getNationSizeStatistics();
         this.scoreStatistics = country.getScoreStatistics();
@@ -509,6 +516,14 @@ public class CountryDTO extends ImageLocalised {
 
     public List<CustomNationalIdeaDTO> getCustomNationalIdeas() {
         return customNationalIdeas;
+    }
+
+    public List<String> getMissions() {
+        return missions;
+    }
+
+    public List<String> getCompletedMissions() {
+        return completedMissions;
     }
 
     public SortedMap<Integer, Integer> getIncomeStatistics() {

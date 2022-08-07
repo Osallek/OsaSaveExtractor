@@ -93,6 +93,8 @@ public class SaveDTO {
 
     private final List<NamedImageLocalisedDTO> leaderPersonalities;
 
+    private final List<MissionDTO> missions;
+
     public SaveDTO(String userId, String name, String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions,
                    DoubleConsumer percentCountriesConsumer) {
         this.startDate = save.getStartDate();
@@ -280,6 +282,12 @@ public class SaveDTO {
                                                  .toList();
 
         this.countryName = this.countries.stream().filter(c -> this.country.equals(c.getTag())).findFirst().map(Localised::new).orElse(null);
+        this.missions = this.countries.stream()
+                                      .map(CountryDTO::getMissions)
+                                      .flatMap(Collection::stream)
+                                      .distinct()
+                                      .map(s -> new MissionDTO(save, save.getGame().getMission(s)))
+                                      .toList();
     }
 
     public LocalDate getStartDate() {
@@ -416,5 +424,9 @@ public class SaveDTO {
 
     public List<NamedImageLocalisedDTO> getLeaderPersonalities() {
         return leaderPersonalities;
+    }
+
+    public List<MissionDTO> getMissions() {
+        return missions;
     }
 }

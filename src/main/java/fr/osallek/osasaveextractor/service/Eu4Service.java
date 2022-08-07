@@ -579,6 +579,23 @@ public class Eu4Service {
                 });
         }
 
+        if (CollectionUtils.isNotEmpty(assets.missions())) {
+            Path cPath = tmpFolder.resolve("missions");
+            save.getGame()
+                .getMissions()
+                .stream()
+                .filter(mission -> assets.missions().contains(mission.getName()))
+                .distinct()
+                .forEach(mission -> {
+                    File file = mission.getIconFile();
+
+                    Constants.getFileChecksum(file).ifPresent(checksum -> {
+                        Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                        toSend.add(cPath.resolve(image));
+                    });
+                });
+        }
+
         return this.serverService.uploadAssets(toSend, tmpFolder, id, userId);
     }
 
