@@ -124,6 +124,13 @@ public class MainController {
 
         errorRow.addColumn(new BootstrapColumn(hBox, new int[] {12, 12, 10, 8, 6}));
 
+        if (this.serverService.needUpdate()) {
+            this.errorText.setText(this.messageSource.getMessage("ose.server.need-update", null, Constants.LOCALE));
+            this.errorText.setVisible(true);
+            this.root.addRow(errorRow);
+            return;
+        }
+
         BootstrapRow titleRow = new BootstrapRow(true);
         Label title = new Label("Osa Save Extractor");
         title.setAlignment(Pos.TOP_CENTER);

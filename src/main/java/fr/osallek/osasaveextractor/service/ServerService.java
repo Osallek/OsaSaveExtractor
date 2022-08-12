@@ -2,7 +2,10 @@ package fr.osallek.osasaveextractor.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.osallek.eu4parser.Eu4Parser;
+import fr.osallek.eu4parser.common.Eu4Utils;
 import fr.osallek.eu4parser.common.ZipUtils;
+import fr.osallek.osasaveextractor.common.CustomGZIPOutputStream;
 import fr.osallek.osasaveextractor.common.exception.ServerException;
 import fr.osallek.osasaveextractor.config.ApplicationProperties;
 import fr.osallek.osasaveextractor.controller.object.DataAssetDTO;
@@ -11,6 +14,8 @@ import fr.osallek.osasaveextractor.service.object.save.SaveDTO;
 import fr.osallek.osasaveextractor.service.object.server.ServerSave;
 import fr.osallek.osasaveextractor.service.object.server.UploadResponseDTO;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -27,7 +32,10 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
@@ -50,6 +58,12 @@ public class ServerService {
         this.properties = properties;
         this.objectMapper = objectMapper;
         this.restTemplate = restTemplate;
+    }
+
+    public boolean needUpdate() {
+        String minVersion = this.restTemplate.getForObject(this.properties.getServerUrl() + "/api/version", String.class);
+
+        return this.properties.getVersion().compareTo(new DefaultArtifactVersion(minVersion)) != 0;
     }
 
     public SortedSet<ServerSave> getSaves(String id) {
@@ -97,6 +111,44 @@ public class ServerService {
 
         try {
             ResponseEntity<String> response = this.restTemplate.postForEntity(this.properties.getServerUrl() + "/api/data",
+                                                                              new HttpEntity<>(body, headers), String.class);
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                return CompletableFuture.failedFuture(new ServerException(this.objectMapper.readValue(response.getBody(), ErrorObject.class).getError()));
+            }
+
+            return CompletableFuture.completedFuture(true);
+        } catch (HttpClientErrorException e) {
+            return CompletableFuture.failedFuture(new ServerException(this.objectMapper.readValue(e.getResponseBodyAsString(), ErrorObject.class).getError()));
+        }
+    }
+
+    public CompletableFuture<Boolean> uploadSave(Path save, Path root, String id, String userId) throws IOException {
+        Path gz = root.resolve(id + ".eu4.gz");
+
+        if (Eu4Parser.isValidCompressed(save)) {
+            Path zipFolder = root.resolve("zip");
+            ZipUtils.unzip(save, zipFolder);
+            save = root.resolve(id + ".zip");
+            ZipUtils.zipFolder(zipFolder, save,
+                               path -> Eu4Utils.GAMESTATE_FILE.equals(path.getFileName().toString()) || Eu4Utils.META_FILE.equals(
+                                       path.getFileName().toString()) || Eu4Utils.AI_FILE.equals(path.getFileName().toString()));
+        }
+
+        try (CustomGZIPOutputStream outputStream = new CustomGZIPOutputStream(new FileOutputStream(gz.toFile()));
+             InputStream inputStream = Files.newInputStream(save)) {
+            IOUtils.copyLarge(inputStream, outputStream, new byte[1_000_000]);
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("save", new FileSystemResource(gz));
+        body.add("data", new DataAssetDTO(userId, id));
+
+        try {
+            ResponseEntity<String> response = this.restTemplate.postForEntity(this.properties.getServerUrl() + "/api/data/save",
                                                                               new HttpEntity<>(body, headers), String.class);
 
             if (!response.getStatusCode().is2xxSuccessful()) {

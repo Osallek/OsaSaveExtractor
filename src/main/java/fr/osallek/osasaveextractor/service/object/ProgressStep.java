@@ -11,6 +11,7 @@ public enum ProgressStep {
     GENERATING_DATA(66),
     GENERATING_DATA_COUNTRIES(68),
     SENDING_DATA(90),
+    SENDING_SAVE(95),
     FINISHED(100);
 
     public final int progress;

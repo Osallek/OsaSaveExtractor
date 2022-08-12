@@ -129,13 +129,7 @@ public class Eu4Service {
         if (Files.exists(this.launcherSettings.getSavesFolder()) && Files.isDirectory(this.launcherSettings.getSavesFolder())) {
             try (Stream<Path> stream = Files.walk(this.launcherSettings.getSavesFolder())) {
                 return stream.filter(path -> path.getFileName().toString().endsWith(".eu4"))
-                             .filter(path -> {
-                                 try {
-                                     return !Eu4Parser.isIronman(path);
-                                 } catch (IOException e) {
-                                     return false;
-                                 }
-                             })
+                             .filter(Eu4Parser::isValid)
                              .sorted(Comparator.comparing(t -> t.toFile().lastModified(), Comparator.reverseOrder()))
                              .toList();
             }
@@ -370,6 +364,16 @@ public class Eu4Service {
                                                  LOGGER.error(throwable.getMessage(), throwable);
 
                                                  FileUtils.deleteQuietly(tmpFolder.toFile());
+                                             }
+                                         })
+                                         .thenCompose(response -> {
+                                             try {
+                                                 this.state.setStep(ProgressStep.SENDING_SAVE);
+                                                 this.serverService.uploadSave(toAnalyse, tmpFolder, response.id(), userId);
+
+                                                 return CompletableFuture.completedFuture(response);
+                                             } catch (IOException e) {
+                                                 return CompletableFuture.failedStage(e);
                                              }
                                          })
                                          .thenAccept(response -> {

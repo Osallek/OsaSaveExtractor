@@ -129,17 +129,17 @@ public class SaveDTO {
                                      .values()
                                      .stream()
                                      .filter(Predicate.not(SaveCountry::isObserver))
-                                     .filter(country -> !"REB".equals(country.getTag()))
-                                     .filter(country -> country.getHistory() != null)
-                                     .filter(country -> CollectionUtils.isNotEmpty(country.getHistory().getEvents()))
-                                     .filter(country -> country.getHistory()
-                                                               .getEvents()
-                                                               .stream()
-                                                               .anyMatch(event -> event.getDate().isAfter(country.getSave().getStartDate())))
+                                     .filter(c -> !"REB".equals(c.getTag()))
+                                     .filter(c -> c.getHistory() != null)
+                                     .filter(c -> CollectionUtils.isNotEmpty(c.getHistory().getEvents()))
+                                     .filter(c -> c.getHistory()
+                                                   .getEvents()
+                                                   .stream()
+                                                   .anyMatch(event -> event.getDate().isAfter(c.getSave().getStartDate())))
                                      .toList();
         this.countries = list.parallelStream()
-                             .map(country -> {
-                                 CountryDTO countryDTO = new CountryDTO(save, country, save.getDiplomacy(), this.provinces);
+                             .map(c -> {
+                                 CountryDTO countryDTO = new CountryDTO(save, c, save.getDiplomacy(), this.provinces);
                                  i.getAndIncrement();
                                  percentCountriesConsumer.accept((double) i.get() / list.size());
 

@@ -11,7 +11,7 @@
 
 	<groupId>fr.osallek</groupId>
 	<artifactId>osa-save-extractor</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.4</version>
 	<name>Osa Save Extractor</name>
 	<description>Project to extract Paradox&apos;s games saves</description>
 
@@ -20,6 +20,8 @@
 
 		<eu4-parser.version>1.1.4</eu4-parser.version>
 		<javafx.version>18.0.1</javafx.version>
+		<bootstrapfx-core.version>0.4.0</bootstrapfx-core.version>
+		<maven-artifact.version>3.8.6</maven-artifact.version>
 	</properties>
 
 	<dependencies>
@@ -62,7 +64,13 @@
 		<dependency>
 			<groupId>org.kordamp.bootstrapfx</groupId>
 			<artifactId>bootstrapfx-core</artifactId>
-			<version>0.4.0</version>
+			<version>${bootstrapfx-core.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.maven</groupId>
+			<artifactId>maven-artifact</artifactId>
+			<version>${maven-artifact.version}</version>
 		</dependency>
 	</dependencies>
 
