@@ -128,12 +128,10 @@ public class SaveDTO {
         List<SaveCountry> list = save.getCountries()
                                      .values()
                                      .stream()
-                                     .filter(SaveCountry::isAlive)
                                      .filter(Predicate.not(SaveCountry::isObserver))
                                      .filter(c -> !"REB".equals(c.getTag()))
                                      .filter(c -> c.getHistory() != null)
                                      .filter(c -> c.getHistory().hasEvents())
-                                     .filter(c -> c.getHistory().hasEventAfter(c.getSave().getStartDate()))
                                      .toList();
         this.countries = list.parallelStream()
                              .map(c -> {

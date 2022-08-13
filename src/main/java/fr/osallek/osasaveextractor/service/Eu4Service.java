@@ -311,12 +311,10 @@ public class Eu4Service {
                 save.getCountries()
                     .values()
                     .stream()
-                    .filter(SaveCountry::isAlive)
                     .filter(Predicate.not(SaveCountry::isObserver))
                     .filter(country -> !"REB".equals(country.getTag()))
                     .filter(country -> country.getHistory() != null)
                     .filter(country -> country.getHistory().hasEvents())
-                    .filter(country -> country.getHistory().hasEventAfter(country.getSave().getStartDate()))
                     .parallel()
                     .forEach(country -> {
                         try {
