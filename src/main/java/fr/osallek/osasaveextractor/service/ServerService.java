@@ -64,7 +64,7 @@ public class ServerService {
     public boolean needUpdate() {
         String minVersion = this.restTemplate.getForObject(this.properties.getServerUrl() + "/api/version", String.class);
 
-        return this.properties.getVersion().compareTo(new DefaultArtifactVersion(minVersion)) != 0;
+        return this.properties.getVersion().compareTo(new DefaultArtifactVersion(minVersion)) < 0;
     }
 
     public SortedSet<ServerSave> getSaves(String id) {
