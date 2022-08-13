@@ -17,7 +17,11 @@ import fr.osallek.eu4parser.model.save.diplomacy.Subsidies;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -195,6 +199,7 @@ public class CountryDTO extends ImageLocalised {
 
     public CountryDTO(Save save, SaveCountry country, Diplomacy diplomacy, SortedSet<ProvinceDTO> provinces) {
         super(save.getGame().getLocalisation(country.getTag()), country.getWritenTo() != null ? country.getWritenTo().toFile() : country.getFlagFile());
+        Instant start = Instant.now();
         this.tag = country.getTag();
         this.customName = ClausewitzUtils.removeQuotes(StringUtils.firstNonBlank(country.getCustomName(), country.getName()));
         this.players = CollectionUtils.isEmpty(country.getPlayers()) ? null : country.getPlayers().stream().map(ClausewitzUtils::removeQuotes).toList();
@@ -368,17 +373,18 @@ public class CountryDTO extends ImageLocalised {
         this.lastBankrupt = country.lastBankrupt();
         this.maxManpower = NumbersUtils.doubleToInt(NumbersUtils.doubleOrDefault(country.getMaxManpower()) * 1000);
         this.manpower = NumbersUtils.doubleToInt(NumbersUtils.doubleOrDefault(country.getManpower()) * 1000);
+        this.maxSailors = NumbersUtils.doubleToInt(NumbersUtils.doubleOrDefault(country.getMaxSailors()) * 1000);
+        this.sailors = NumbersUtils.doubleToInt(NumbersUtils.doubleOrDefault(country.getSailors()) * 1000);
+        this.losses = country.getLosses();
+        this.innovativeness = NumbersUtils.doubleOrDefault(country.getInnovativeness());
+        this.alive = country.isAlive();
+        this.nbInstitutions = (int) country.getNbEmbracedInstitutions();
+
         this.armyLimit = (int) country.getLandForceLimit();
         this.armyMorale = country.getLandMorale();
         this.discipline = country.getDiscipline();
-        this.maxSailors = NumbersUtils.doubleToInt(NumbersUtils.doubleOrDefault(country.getMaxSailors()) * 1000);
-        this.sailors = NumbersUtils.doubleToInt(NumbersUtils.doubleOrDefault(country.getSailors()) * 1000);
         this.navalLimit = (int) country.getNavalForceLimit();
         this.navalMorale = country.getNavalMorale();
-        this.losses = country.getLosses();
-        this.innovativeness = NumbersUtils.doubleOrDefault(country.getInnovativeness());
-        this.alive = !country.getContinents().isEmpty();
-        this.nbInstitutions = (int) country.getNbEmbracedInstitutions();
 
         if (country.getHistory() != null) {
             this.history.addAll(country.getHistory().getEvents().stream().map(CountryHistoryDTO::new).toList());

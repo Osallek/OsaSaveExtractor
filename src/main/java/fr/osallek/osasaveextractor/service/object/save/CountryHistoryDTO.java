@@ -3,11 +3,12 @@ package fr.osallek.osasaveextractor.service.object.save;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.model.save.country.SaveCountryHistoryEvent;
+import org.apache.commons.lang3.ObjectUtils;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.commons.lang3.ObjectUtils;
 
 public class CountryHistoryDTO {
 

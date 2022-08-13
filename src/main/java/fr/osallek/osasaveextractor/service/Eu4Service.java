@@ -3,11 +3,15 @@ package fr.osallek.osasaveextractor.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.osallek.clausewitzparser.model.ClausewitzItem;
 import fr.osallek.eu4parser.Eu4Parser;
+import fr.osallek.eu4parser.common.Eu4Utils;
+import fr.osallek.eu4parser.common.ImageReader;
 import fr.osallek.eu4parser.model.LauncherSettings;
+import fr.osallek.eu4parser.model.game.Estate;
 import fr.osallek.eu4parser.model.game.Game;
 import fr.osallek.eu4parser.model.game.IdeaGroup;
 import fr.osallek.eu4parser.model.game.Province;
 import fr.osallek.eu4parser.model.game.Religion;
+import fr.osallek.eu4parser.model.game.TradeGood;
 import fr.osallek.eu4parser.model.save.Save;
 import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.osasaveextractor.common.Constants;
@@ -47,11 +51,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @Service
@@ -204,63 +212,97 @@ public class Eu4Service {
 
                 Path goodsTmpFolder = tmpFolder.resolve("goods");
                 FileUtils.forceMkdir(goodsTmpFolder.toFile());
-                save.getGame().getTradeGoods().forEach(tradeGood -> {
-                    try {
-                        tradeGood.writeImageTo(goodsTmpFolder.resolve(tradeGood.getName() + ".png"));
 
-                        Optional<String> goodChecksum = Constants.getFileChecksum(tradeGood.getWritenTo());
-                        if (goodChecksum.isPresent()) {
-                            Path source = tradeGood.getWritenTo();
-                            tradeGood.setWritenTo(source.resolveSibling(goodChecksum.get() + ".png"));
-                            FileUtils.moveFile(source.toFile(), tradeGood.getWritenTo().toFile());
-                        } else {
-                            LOGGER.warn("Could not get hash for trade good {}", tradeGood.getName());
+                BufferedImage tradeGoodsImage = ImageReader.convertFileToImage(save.getGame().getResourcesImage());
+                IntStream.rangeClosed(0, tradeGoodsImage.getWidth() / 64).parallel().forEach(j -> {
+                    try {
+                        List<TradeGood> tradeGoods = save.getGame().getTradeGoods().stream().filter(good -> good.getIndex() == j).toList();
+
+                        if (CollectionUtils.isNotEmpty(tradeGoods)) {
+                            BufferedImage tradeGoodImageImage = tradeGoodsImage.getSubimage(j * 64, 0, 64, 64);
+                            Path dest = goodsTmpFolder.resolve(tradeGoods.get(0).getName() + ".png");
+                            ImageIO.write(tradeGoodImageImage, "png", dest.toFile());
+                            Eu4Utils.optimizePng(dest, dest);
+                            tradeGoods.get(0).setWritenTo(dest);
+
+                            Optional<String> goodChecksum = Constants.getFileChecksum(tradeGoods.get(0).getWritenTo());
+                            if (goodChecksum.isPresent()) {
+                                tradeGoods.forEach(tradeGood -> tradeGood.setWritenTo(dest.resolveSibling(goodChecksum.get() + ".png")));
+                                FileUtils.moveFile(dest.toFile(), tradeGoods.get(0).getWritenTo().toFile());
+                            } else {
+                                LOGGER.warn("Could not get hash for trade good {}", tradeGoods.get(0).getName());
+                            }
                         }
-                    } catch (FileExistsException ignored) {
-                    } catch (IOException e) {
-                        LOGGER.warn("Could not write trade good file for {}: {}", tradeGood.getName(), e.getMessage(), e);
+                    } catch (Exception e) {
+                        LOGGER.warn(e.getMessage(), e);
                     }
                 });
 
                 Path religionsTmpFolder = tmpFolder.resolve("religions");
                 FileUtils.forceMkdir(religionsTmpFolder.toFile());
-                Map<String, Religion> religions = new HashMap<>();
-                save.getGame().getReligions().stream().filter(religion -> religion.getIcon() != null).forEach(religion -> {
-                    try {
-                        religions.put(religion.getName(), religion);
-                        religion.writeImageTo(religionsTmpFolder.resolve(religion.getName() + ".png"));
+                Map<String, Religion> religionsMap = new HashMap<>();
 
-                        Optional<String> religionChecksum = Constants.getFileChecksum(religion.getWritenTo());
-                        if (religionChecksum.isPresent()) {
-                            Path source = religion.getWritenTo();
-                            religion.setWritenTo(source.resolveSibling(religionChecksum.get() + ".png"));
-                            FileUtils.moveFile(source.toFile(), religion.getWritenTo().toFile());
-                        } else {
-                            LOGGER.warn("Could not get hash for trade religion {}", religion.getName());
+                BufferedImage religionsImage = ImageReader.convertFileToImage(save.getGame().getReligionsImage());
+                IntStream.rangeClosed(0, religionsImage.getWidth() / 64).parallel().forEach(j -> {
+                    try {
+                        List<Religion> religions = save.getGame()
+                                                          .getReligions()
+                                                          .stream()
+                                                          .filter(r -> r.getIcon() != null)
+                                                          .filter(r -> j == (r.getIcon() - 1))
+                                                          .toList();
+
+                        if (CollectionUtils.isNotEmpty(religions)) {
+                            religions.forEach(religion -> religionsMap.put(religion.getName(), religion));
+                            BufferedImage religionImage = religionsImage.getSubimage(j * 64, 0, 64, 64);
+                            Path dest = religionsTmpFolder.resolve(religions.get(0).getName() + ".png");
+                            ImageIO.write(religionImage, "png", dest.toFile());
+                            Eu4Utils.optimizePng(dest, dest);
+                            religions.get(0).setWritenTo(dest);
+
+                            Optional<String> religionChecksum = Constants.getFileChecksum(religions.get(0).getWritenTo());
+                            if (religionChecksum.isPresent()) {
+                                religions.forEach(religion -> religion.setWritenTo(dest.resolveSibling(religionChecksum.get() + ".png")));
+                                FileUtils.moveFile(dest.toFile(), religions.get(0).getWritenTo().toFile());
+                            } else {
+                                LOGGER.warn("Could not get hash for religion {}", religions.get(0).getName());
+                            }
                         }
-                    } catch (FileExistsException ignored) {
-                    } catch (IOException e) {
-                        LOGGER.warn("Could not write trade religion file for {}: {}", religion.getName(), e.getMessage(), e);
+                    } catch (Exception e) {
+                        LOGGER.warn(e.getMessage(), e);
                     }
                 });
 
                 Path estatesTmpFolder = tmpFolder.resolve("estates");
                 FileUtils.forceMkdir(estatesTmpFolder.toFile());
-                save.getGame().getEstates().forEach(estate -> {
-                    try {
-                        estate.writeImageTo(estatesTmpFolder.resolve(estate.getName() + ".png"));
 
-                        Optional<String> estateChecksum = Constants.getFileChecksum(estate.getWritenTo());
-                        if (estateChecksum.isPresent()) {
-                            Path source = estate.getWritenTo();
-                            estate.setWritenTo(source.resolveSibling(estateChecksum.get() + ".png"));
-                            FileUtils.moveFile(source.toFile(), estate.getWritenTo().toFile());
-                        } else {
-                            LOGGER.warn("Could not get hash for estate {}", estate.getName());
+                BufferedImage estatesImage = ImageReader.convertFileToImage(save.getGame().getEstatesImage());
+                IntStream.rangeClosed(0, estatesImage.getWidth() / 47).parallel().forEach(j -> {
+                    try {
+                        List<Estate> estates = save.getGame()
+                                                      .getEstates()
+                                                      .stream()
+                                                      .filter(e -> e.getIcon() != null)
+                                                      .filter(e -> j == (e.getIcon() - 1))
+                                                      .toList();
+
+                        if (CollectionUtils.isNotEmpty(estates)) {
+                            BufferedImage estateImage = estatesImage.getSubimage(j * 47, 0, 47, 44);
+                            Path dest = estatesTmpFolder.resolve(estates.get(0).getName() + ".png");
+                            ImageIO.write(estateImage, "png", dest.toFile());
+                            Eu4Utils.optimizePng(dest, dest);
+                            estates.get(0).setWritenTo(dest);
+
+                            Optional<String> estateChecksum = Constants.getFileChecksum(estates.get(0).getWritenTo());
+                            if (estateChecksum.isPresent()) {
+                                estates.forEach(estate -> estate.setWritenTo(dest.resolveSibling(estateChecksum.get() + ".png")));
+                                FileUtils.moveFile(dest.toFile(), estates.get(0).getWritenTo().toFile());
+                            } else {
+                                LOGGER.warn("Could not get hash for estate {}", estates.get(0).getName());
+                            }
                         }
-                    } catch (FileExistsException ignored) {
-                    } catch (IOException e) {
-                        LOGGER.warn("Could not write estate file for {}: {}", estate.getName(), e.getMessage(), e);
+                    } catch (Exception e) {
+                        LOGGER.warn(e.getMessage(), e);
                     }
                 });
 
@@ -269,14 +311,13 @@ public class Eu4Service {
                 save.getCountries()
                     .values()
                     .stream()
+                    .filter(SaveCountry::isAlive)
                     .filter(Predicate.not(SaveCountry::isObserver))
                     .filter(country -> !"REB".equals(country.getTag()))
                     .filter(country -> country.getHistory() != null)
-                    .filter(country -> CollectionUtils.isNotEmpty(country.getHistory().getEvents()))
-                    .filter(country -> country.getHistory()
-                                              .getEvents()
-                                              .stream()
-                                              .anyMatch(event -> event.getDate().isAfter(country.getSave().getStartDate())))
+                    .filter(country -> country.getHistory().hasEvents())
+                    .filter(country -> country.getHistory().hasEventAfter(country.getSave().getStartDate()))
+                    .parallel()
                     .forEach(country -> {
                         try {
                             BufferedImage image = country.getCustomFlagImage();
@@ -300,7 +341,7 @@ public class Eu4Service {
                         }
                     });
 
-                SaveDTO saveDTO = new SaveDTO(userId, name, previousSave, save, provinceChecksum.get(), colorsChecksum.get(), religions,
+                SaveDTO saveDTO = new SaveDTO(userId, name, previousSave, save, provinceChecksum.get(), colorsChecksum.get(), religionsMap,
                                               value -> {
                                                   this.state.setSubStep(ProgressStep.GENERATING_DATA_COUNTRIES);
                                                   int progress = ProgressStep.GENERATING_DATA_COUNTRIES.progress;
@@ -336,7 +377,7 @@ public class Eu4Service {
                                                  return CompletableFuture.completedFuture(response);
                                              } else {
                                                  try {
-                                                     return sendMissingAssets(response.assetsDTO(), tmpFolder, save, finalColorsFile, provinceFile, religions,
+                                                     return sendMissingAssets(response.assetsDTO(), tmpFolder, save, finalColorsFile, provinceFile, religionsMap,
                                                                               response.id(), userId)
                                                              .thenCompose(aBoolean -> {
                                                                  if (BooleanUtils.toBoolean(aBoolean)) {
@@ -394,7 +435,7 @@ public class Eu4Service {
 
     private CompletableFuture<Boolean> sendMissingAssets(AssetsDTO assets, Path tmpFolder, Save save, Path colorsFile, Path provinceFile,
                                                          Map<String, Religion> religions, String id, String userId) throws IOException {
-        List<Path> toSend = new ArrayList<>();
+        Queue<Path> toSend = new ConcurrentLinkedQueue<>();
 
         if (assets.provinces()) {
             Path provinceMapFile = tmpFolder.resolve("provinces").resolve("provinces.png");
@@ -418,7 +459,7 @@ public class Eu4Service {
 
         if (CollectionUtils.isNotEmpty(assets.countries())) {
             Path cPath = tmpFolder.resolve("flags");
-            save.getCountries().values().stream().filter(country -> assets.countries().contains(country.getTag())).distinct().forEach(country -> {
+            save.getCountries().values().parallelStream().filter(country -> assets.countries().contains(country.getTag())).distinct().forEach(country -> {
                 if (country.useCustomFlagImage()) {
                     if (country.getWritenTo() != null) {
                         toSend.add(country.getWritenTo());
@@ -439,7 +480,7 @@ public class Eu4Service {
 
         if (CollectionUtils.isNotEmpty(assets.advisors())) {
             Path cPath = tmpFolder.resolve("advisors");
-            save.getGame().getAdvisors().stream().filter(advisor -> assets.advisors().contains(advisor.getName())).distinct().forEach(advisor -> {
+            save.getGame().getAdvisors().parallelStream().filter(advisor -> assets.advisors().contains(advisor.getName())).distinct().forEach(advisor -> {
                 File file = advisor.getDefaultImage();
 
                 Constants.getFileChecksum(file).ifPresent(checksum -> {
@@ -456,7 +497,7 @@ public class Eu4Service {
             Path cPath = tmpFolder.resolve("institutions");
             save.getGame()
                 .getInstitutions()
-                .stream()
+                .parallelStream()
                 .filter(institution -> assets.institutions().contains(institution.getName()))
                 .distinct()
                 .forEach(institution -> {
@@ -474,7 +515,7 @@ public class Eu4Service {
 
         if (CollectionUtils.isNotEmpty(assets.buildings())) {
             Path cPath = tmpFolder.resolve("buildings");
-            save.getGame().getBuildings().stream().filter(building -> assets.buildings().contains(building.getName())).distinct().forEach(building -> {
+            save.getGame().getBuildings().parallelStream().filter(building -> assets.buildings().contains(building.getName())).distinct().forEach(building -> {
                 File file = building.getImage();
 
                 Constants.getFileChecksum(file).ifPresent(checksum -> {
@@ -489,7 +530,7 @@ public class Eu4Service {
 
         if (CollectionUtils.isNotEmpty(assets.religions())) {
             religions.values()
-                     .stream()
+                     .parallelStream()
                      .filter(religion -> assets.religions().contains(religion.getName()))
                      .distinct()
                      .forEach(religion -> toSend.add(religion.getWritenTo()));
@@ -498,7 +539,7 @@ public class Eu4Service {
         if (CollectionUtils.isNotEmpty(assets.tradeGoods())) {
             save.getGame()
                 .getTradeGoods()
-                .stream()
+                .parallelStream()
                 .filter(good -> assets.tradeGoods().contains(good.getName()))
                 .distinct()
                 .forEach(good -> toSend.add(good.getWritenTo()));
@@ -507,7 +548,7 @@ public class Eu4Service {
         if (CollectionUtils.isNotEmpty(assets.estates())) {
             save.getGame()
                 .getEstates()
-                .stream()
+                .parallelStream()
                 .filter(estate -> assets.estates().contains(estate.getName()))
                 .distinct()
                 .forEach(estate -> toSend.add(estate.getWritenTo()));
@@ -517,7 +558,7 @@ public class Eu4Service {
             Path cPath = tmpFolder.resolve("privileges");
             save.getGame()
                 .getEstatePrivileges()
-                .stream()
+                .parallelStream()
                 .filter(privilege -> assets.privileges().contains(privilege.getName()))
                 .distinct()
                 .forEach(privilege -> {
@@ -535,7 +576,7 @@ public class Eu4Service {
 
         if (CollectionUtils.isNotEmpty(assets.ideaGroups())) {
             Path cPath = tmpFolder.resolve("idea_groups");
-            save.getGame().getIdeaGroups().stream().filter(group -> assets.ideaGroups().contains(group.getName())).distinct().forEach(group -> {
+            save.getGame().getIdeaGroups().parallelStream().filter(group -> assets.ideaGroups().contains(group.getName())).distinct().forEach(group -> {
                 File file = group.getImage();
 
                 Constants.getFileChecksum(file).ifPresent(checksum -> {
@@ -614,7 +655,7 @@ public class Eu4Service {
             Path cPath = tmpFolder.resolve("missions");
             save.getGame()
                 .getMissions()
-                .stream()
+                .parallelStream()
                 .filter(mission -> assets.missions().contains(mission.getName()))
                 .distinct()
                 .forEach(mission -> {

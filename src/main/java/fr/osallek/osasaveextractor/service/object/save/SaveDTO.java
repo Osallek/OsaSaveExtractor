@@ -106,7 +106,7 @@ public class SaveDTO {
         this.colorsImage = colorsImage;
         this.name = name;
         this.date = save.getDate();
-        this.nbProvinces = Collections.max(save.getGame().getProvinces().keySet()); //Get the greatest link
+        this.nbProvinces = Collections.max(save.getGame().getProvinces().keySet()); //Get the greatest id
         this.teams = CollectionUtils.isNotEmpty(save.getTeams()) ? save.getTeams().stream().map(TeamDTO::new).toList() : null;
 
         save.getProvinces().values().forEach(province -> {
@@ -128,14 +128,12 @@ public class SaveDTO {
         List<SaveCountry> list = save.getCountries()
                                      .values()
                                      .stream()
+                                     .filter(SaveCountry::isAlive)
                                      .filter(Predicate.not(SaveCountry::isObserver))
                                      .filter(c -> !"REB".equals(c.getTag()))
                                      .filter(c -> c.getHistory() != null)
-                                     .filter(c -> CollectionUtils.isNotEmpty(c.getHistory().getEvents()))
-                                     .filter(c -> c.getHistory()
-                                                   .getEvents()
-                                                   .stream()
-                                                   .anyMatch(event -> event.getDate().isAfter(c.getSave().getStartDate())))
+                                     .filter(c -> c.getHistory().hasEvents())
+                                     .filter(c -> c.getHistory().hasEventAfter(c.getSave().getStartDate()))
                                      .toList();
         this.countries = list.parallelStream()
                              .map(c -> {

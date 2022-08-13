@@ -11,7 +11,7 @@
 
 	<groupId>fr.osallek</groupId>
 	<artifactId>osa-save-extractor</artifactId>
-	<version>1.0.4</version>
+	<version>1.0.5</version>
 	<name>Osa Save Extractor</name>
 	<description>Project to extract Paradox&apos;s games saves</description>
 

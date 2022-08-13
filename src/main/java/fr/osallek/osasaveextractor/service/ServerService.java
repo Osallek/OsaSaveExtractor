@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.SortedSet;
@@ -97,7 +98,7 @@ public class ServerService {
         }
     }
 
-    public CompletableFuture<Boolean> uploadAssets(List<Path> assets, Path root, String id, String userId) throws IOException {
+    public CompletableFuture<Boolean> uploadAssets(Collection<Path> assets, Path root, String id, String userId) throws IOException {
         Path zip = root.resolve("assets.zip");
 
         ZipUtils.zipFolder(root, zip, assets::contains);
