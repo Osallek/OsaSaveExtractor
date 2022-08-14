@@ -14,6 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -22,6 +23,8 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.DoubleConsumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SaveDTO {
 
@@ -94,6 +97,8 @@ public class SaveDTO {
     private final List<NamedImageLocalisedDTO> leaderPersonalities;
 
     private final List<MissionDTO> missions;
+
+    private final List<WarDTO> wars;
 
     public SaveDTO(String userId, String name, String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions,
                    DoubleConsumer percentCountriesConsumer) {
@@ -284,6 +289,14 @@ public class SaveDTO {
                                       .distinct()
                                       .map(s -> new MissionDTO(save, save.getGame().getMission(s)))
                                       .toList();
+        AtomicInteger warId = new AtomicInteger(1);
+        this.wars = Stream.concat(save.getActiveWars().stream(), save.getPreviousWars().stream())
+                          .filter(war -> MapUtils.isNotEmpty(war.getActionsHistory()))
+                          .filter(war -> MapUtils.isNotEmpty(war.getPersistentAttackers()) && MapUtils.isNotEmpty(war.getPersistentDefenders()))
+                          .map(war -> new WarDTO(warId.getAndIncrement(), war))
+                          .filter(war -> war.getEndDate() == null || war.getEndDate().isAfter(this.startDate))
+                          .sorted(Comparator.comparing(WarDTO::getStartDate))
+                          .collect(Collectors.toList());
     }
 
     public LocalDate getStartDate() {
@@ -424,5 +437,9 @@ public class SaveDTO {
 
     public List<MissionDTO> getMissions() {
         return missions;
+    }
+
+    public List<WarDTO> getWars() {
+        return wars;
     }
 }

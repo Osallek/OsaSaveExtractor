@@ -224,7 +224,7 @@ public class MainController {
             this.localSavesCombo.disableProperty().bind(this.loading.or(this.serverInvalid));
             this.localSavesCombo.getSelectionModel()
                                 .selectedItemProperty()
-                                .addListener((observable, oldValue, newValue) -> this.saveNameField.setText(newValue == null ? null : newValue.getFileName().toString()));
+                                .addListener((observable, oldValue, newValue) -> this.saveNameField.setText(newValue == null ? null : newValue.getFileName().toString().replace(".eu4", "")));
 
             this.saveNameField = new TextField();
             this.saveNameField.setPrefWidth(300);
