@@ -6,10 +6,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class WarDTO {
@@ -30,11 +32,11 @@ public class WarDTO {
 
     private final Map<String, WarParticipantDTO> defenders;
 
-    private final Double defenderScore;
+    private final Double score;
 
     private final Integer outcome;
 
-    private final List<WarHistoryEventDTO> history;
+    private List<WarHistoryEventDTO> history;
 
     public WarDTO(int id, ActiveWar war) {
         this.id = id;
@@ -50,11 +52,13 @@ public class WarDTO {
                             .stream()
                             .collect(Collectors.toMap(entry -> entry.getKey().getTag(), entry -> new WarParticipantDTO(entry.getValue()), (a, b) -> a,
                                                       LinkedHashMap::new));
-        this.defenderScore = war.getDefenderScore();
+        this.score = war.getScore();
         this.history = war.getEvents().stream().map(WarHistoryEventDTO::new).collect(Collectors.toList());
-        this.history.sort(Comparator.comparing(WarHistoryEventDTO::date));
-        this.startDate = this.history.get(0).date();
-        this.endDate = this.finished ? this.history.get(this.history.size() - 1).date() : null;
+        this.history = new ArrayList<>(this.history.stream().collect(Collectors.toMap(WarHistoryEventDTO::getDate, Function.identity(),
+                                                                                      WarHistoryEventDTO::merge)).values());
+        this.history.sort(Comparator.comparing(WarHistoryEventDTO::getDate));
+        this.startDate = this.history.get(0).getDate();
+        this.endDate = this.finished ? this.history.get(this.history.size() - 1).getDate() : null;
         this.duration = (this.endDate == null || this.startDate == null) ? null : (int) ChronoUnit.MONTHS.between(this.startDate, this.endDate);
 
         if (war instanceof PreviousWar previousWar) {
@@ -96,8 +100,8 @@ public class WarDTO {
         return defenders;
     }
 
-    public Double getDefenderScore() {
-        return defenderScore;
+    public Double getScore() {
+        return score;
     }
 
     public Integer getOutcome() {
