@@ -68,7 +68,7 @@ public class CountryHistoryDTO {
 
     private final Boolean elector;
 
-    public CountryHistoryDTO(SaveCountryHistoryEvent event) {
+    public CountryHistoryDTO(SaveCountryHistoryEvent event, LocalDate date) {
         this.date = event.getDate();
         this.abolishedSerfdom = event.getAbolishedSerfdom();
         this.leader = event.getLeader() == null ? null : new LeaderDTO(event.getLeader());
@@ -91,12 +91,12 @@ public class CountryHistoryDTO {
         this.religiousSchool = event.getReligiousSchool();
         this.setCountryFlag = event.getSetCountryFlag();
         this.decision = event.getDecision();
-        this.queen = event.getQueen() == null ? null : new QueenDTO(event.getQueen(), this.date);
+        this.queen = event.getQueen() == null ? null : new QueenDTO(event.getQueen(), this.date, date);
         this.monarch = Optional.ofNullable(ObjectUtils.firstNonNull(event.getMonarch(), event.getMonarchHeir(), event.getMonarchConsort(),
                                                                     event.getMonarchForeignHeir()))
-                               .map(m -> new MonarchDTO(m, this.date))
+                               .map(m -> new MonarchDTO(m, this.date, date))
                                .orElse(null);
-        this.heir = event.getHeir() == null ? null : new HeirDTO(event.getHeir(), this.date);
+        this.heir = event.getHeir() == null ? null : new HeirDTO(event.getHeir(), this.date, date);
         this.union = event.getUnion();
         this.tradePort = event.getTradePort();
         this.elector = event.getElector();

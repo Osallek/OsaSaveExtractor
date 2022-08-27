@@ -2,6 +2,7 @@ package fr.osallek.osasaveextractor.service.object.save;
 
 import fr.osallek.eu4parser.model.save.war.ActiveWar;
 import fr.osallek.eu4parser.model.save.war.PreviousWar;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDate;
@@ -38,7 +39,7 @@ public class WarDTO {
 
     private List<WarHistoryEventDTO> history;
 
-    public WarDTO(int id, ActiveWar war) {
+    public WarDTO(int id, ActiveWar war, LocalDate date) {
         this.id = id;
         this.name = StringUtils.trimToNull(war.getName());
         this.finished = war.isFinished();
@@ -59,7 +60,7 @@ public class WarDTO {
         this.history.sort(Comparator.comparing(WarHistoryEventDTO::getDate));
         this.startDate = this.history.get(0).getDate();
         this.endDate = this.finished ? this.history.get(this.history.size() - 1).getDate() : null;
-        this.duration = (this.endDate == null || this.startDate == null) ? null : (int) ChronoUnit.MONTHS.between(this.startDate, this.endDate);
+        this.duration = this.startDate == null ? null : (int) ChronoUnit.MONTHS.between(this.startDate, ObjectUtils.firstNonNull(this.endDate, date));
 
         if (war instanceof PreviousWar previousWar) {
             this.outcome = previousWar.getOutcome();

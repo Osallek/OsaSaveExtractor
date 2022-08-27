@@ -8,6 +8,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 
 public class MonarchDTO {
 
@@ -47,7 +48,7 @@ public class MonarchDTO {
 
     private Integer duration;
 
-    public MonarchDTO(Monarch monarch, LocalDate date) {
+    public MonarchDTO(Monarch monarch, LocalDate date, LocalDate currentDate) {
         this.monarchDate = date;
         this.id = monarch.getAdm();
         this.country = monarch.getCountry().getTag();
@@ -72,7 +73,8 @@ public class MonarchDTO {
         } else {
             this.leader = null;
         }
-        this.duration = this.deathDate == null ? null : (int) ChronoUnit.MONTHS.between(date, this.deathDate);
+
+        this.duration = (int) ChronoUnit.MONTHS.between(date, ObjectUtils.firstNonNull(this.deathDate, currentDate));
     }
 
     public LocalDate getMonarchDate() {
@@ -135,9 +137,9 @@ public class MonarchDTO {
         return deathDate;
     }
 
-    public void setDeathDate(LocalDate deathDate, LocalDate date) {
+    public void setDeathDate(LocalDate deathDate, LocalDate date, LocalDate startDate) {
         this.deathDate = deathDate;
-        this.duration = this.deathDate == null ? null : (int) ChronoUnit.MONTHS.between(date, this.deathDate);
+        this.duration = (int) ChronoUnit.MONTHS.between(date, ObjectUtils.firstNonNull(this.deathDate, startDate));
 
         if (this.leader != null) {
             this.leader.setDeathDate(deathDate);

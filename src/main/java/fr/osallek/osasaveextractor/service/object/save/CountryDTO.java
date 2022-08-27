@@ -17,10 +17,7 @@ import fr.osallek.eu4parser.model.save.diplomacy.Subsidies;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -387,8 +384,8 @@ public class CountryDTO extends ImageLocalised {
         this.navalMorale = country.getNavalMorale();
 
         if (country.getHistory() != null) {
-            this.history.addAll(country.getHistory().getEvents().stream().map(CountryHistoryDTO::new).toList());
-            this.history.add(new CountryHistoryDTO(country.getHistory()));
+            this.history.addAll(country.getHistory().getEvents().stream().map(event -> new CountryHistoryDTO(event, save.getDate())).toList());
+            this.history.add(new CountryHistoryDTO(country.getHistory(), save.getDate()));
             this.history.removeIf(Predicate.not(CountryHistoryDTO::notEmpty));
             this.history.sort(Comparator.comparing(CountryHistoryDTO::getDate));
         }
@@ -411,7 +408,7 @@ public class CountryDTO extends ImageLocalised {
             CountryHistoryDTO h = monarchs.get(i);
 
             if (h.getMonarch().getDeathDate() == null) {
-                h.getMonarch().setDeathDate(monarchs.size() == i + 1 ? null : monarchs.get(i + 1).getDate(), h.getDate());
+                h.getMonarch().setDeathDate(monarchs.size() == i + 1 ? null : monarchs.get(i + 1).getDate(), h.getDate(), save.getDate());
             }
         }
     }

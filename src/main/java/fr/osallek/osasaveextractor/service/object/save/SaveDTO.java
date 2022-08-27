@@ -293,7 +293,7 @@ public class SaveDTO {
         this.wars = Stream.concat(save.getActiveWars().stream(), save.getPreviousWars().stream())
                           .filter(war -> MapUtils.isNotEmpty(war.getActionsHistory()))
                           .filter(war -> MapUtils.isNotEmpty(war.getPersistentAttackers()) && MapUtils.isNotEmpty(war.getPersistentDefenders()))
-                          .map(war -> new WarDTO(warId.getAndIncrement(), war))
+                          .map(war -> new WarDTO(warId.getAndIncrement(), war, save.getDate()))
                           .filter(war -> war.getEndDate() == null || war.getEndDate().isAfter(this.startDate))
                           .sorted(Comparator.comparing(WarDTO::getStartDate))
                           .collect(Collectors.toList());

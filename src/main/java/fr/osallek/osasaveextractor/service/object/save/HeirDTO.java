@@ -8,8 +8,8 @@ public class HeirDTO extends MonarchDTO {
 
     private final double claim;
 
-    public HeirDTO(Heir heir, LocalDate date) {
-        super(heir, date);
+    public HeirDTO(Heir heir, LocalDate date, LocalDate currentDate) {
+        super(heir, date, currentDate);
         this.claim = NumbersUtils.doubleOrDefault(heir.getClaim());
     }
 

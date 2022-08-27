@@ -12,8 +12,8 @@ public class QueenDTO extends MonarchDTO {
 
     private final String countryOfOrigin;
 
-    public QueenDTO(Queen queen, LocalDate date) {
-        super(queen, date);
+    public QueenDTO(Queen queen, LocalDate date, LocalDate currentDate) {
+        super(queen, date, currentDate);
         this.consort = BooleanUtils.toBoolean(queen.getConsort());
         this.queenRegent = BooleanUtils.toBoolean(queen.getQueenRegent());
         this.countryOfOrigin = queen.getCountryOfOrigin() == null ? null : queen.getCountryOfOrigin().getTag();
