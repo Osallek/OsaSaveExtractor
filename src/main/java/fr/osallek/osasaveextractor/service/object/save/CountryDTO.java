@@ -18,7 +18,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -196,7 +196,6 @@ public class CountryDTO extends ImageLocalised {
 
     public CountryDTO(Save save, SaveCountry country, Diplomacy diplomacy, SortedSet<ProvinceDTO> provinces) {
         super(save.getGame().getLocalisation(country.getTag()), country.getWritenTo() != null ? country.getWritenTo().toFile() : country.getFlagFile());
-        Instant start = Instant.now();
         this.tag = country.getTag();
         this.customName = ClausewitzUtils.removeQuotes(StringUtils.firstNonBlank(country.getCustomName(), country.getName()));
         this.players = CollectionUtils.isEmpty(country.getPlayers()) ? null : country.getPlayers().stream().map(ClausewitzUtils::removeQuotes).toList();
@@ -411,6 +410,63 @@ public class CountryDTO extends ImageLocalised {
                 h.getMonarch().setDeathDate(monarchs.size() == i + 1 ? null : monarchs.get(i + 1).getDate(), h.getDate(), save.getDate());
             }
         }
+
+        AtomicInteger i = new AtomicInteger(0);
+        this.changedTag.forEach((date, s) -> {
+            SaveCountry saveCountry = save.getCountry(s);
+
+            if (saveCountry != null) {
+                if (i.get() == 0) {
+                    saveCountry.getIncomeStatistics()
+                               .entrySet()
+                               .stream()
+                               .filter(entry -> entry.getKey() <= date.getYear())
+                               .forEach(entry -> this.incomeStatistics.put(entry.getKey(), entry.getValue()));
+                    saveCountry.getNationSizeStatistics()
+                               .entrySet()
+                               .stream()
+                               .filter(entry -> entry.getKey() <= date.getYear())
+                               .forEach(entry -> this.nationSizeStatistics.put(entry.getKey(), entry.getValue()));
+                    saveCountry.getScoreStatistics()
+                               .entrySet()
+                               .stream()
+                               .filter(entry -> entry.getKey() <= date.getYear())
+                               .forEach(entry -> this.scoreStatistics.put(entry.getKey(), entry.getValue()));
+                    saveCountry.getInflationStatistics()
+                               .entrySet()
+                               .stream()
+                               .filter(entry -> entry.getKey() <= date.getYear())
+                               .forEach(entry -> this.inflationStatistics.put(entry.getKey(), entry.getValue()));
+                } else {
+                    saveCountry.getIncomeStatistics()
+                               .entrySet()
+                               .stream()
+                               .filter(entry -> entry.getKey() <= date.getYear()
+                                                && entry.getKey() >= new ArrayList<>(this.changedTag.keySet()).get(i.get() - 1).getYear())
+                               .forEach(entry -> this.incomeStatistics.put(entry.getKey(), entry.getValue()));
+                    saveCountry.getNationSizeStatistics()
+                               .entrySet()
+                               .stream()
+                               .filter(entry -> entry.getKey() <= date.getYear()
+                                                && entry.getKey() >= new ArrayList<>(this.changedTag.keySet()).get(i.get() - 1).getYear())
+                               .forEach(entry -> this.nationSizeStatistics.put(entry.getKey(), entry.getValue()));
+                    saveCountry.getScoreStatistics()
+                               .entrySet()
+                               .stream()
+                               .filter(entry -> entry.getKey() <= date.getYear()
+                                                && entry.getKey() >= new ArrayList<>(this.changedTag.keySet()).get(i.get() - 1).getYear())
+                               .forEach(entry -> this.scoreStatistics.put(entry.getKey(), entry.getValue()));
+                    saveCountry.getInflationStatistics()
+                               .entrySet()
+                               .stream()
+                               .filter(entry -> entry.getKey() <= date.getYear()
+                                                && entry.getKey() >= new ArrayList<>(this.changedTag.keySet()).get(i.get() - 1).getYear())
+                               .forEach(entry -> this.inflationStatistics.put(entry.getKey(), entry.getValue()));
+                }
+
+                i.incrementAndGet();
+            }
+        });
     }
 
     public String getTag() {
