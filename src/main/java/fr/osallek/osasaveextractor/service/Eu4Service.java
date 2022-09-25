@@ -40,6 +40,8 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -58,7 +60,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -156,7 +157,15 @@ public class Eu4Service {
                 AtomicInteger count = new AtomicInteger(0);
                 Path savePath = this.launcherSettings.getSavesFolder().resolve(toAnalyse);
                 this.state.setStep(ProgressStep.PARSING_GAME);
-                Game game = Eu4Parser.parseGame(Eu4Parser.detectInstallationFolder().get(), Eu4Parser.getMods(savePath), this.launcherSettings,
+
+                Map<Integer, String> tokens = null;
+                if (Eu4Parser.isIronman(toAnalyse)) {
+                    tokens = this.serverService.getTokens();
+                }
+
+                ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(1).position(0).getFloat();
+
+                Game game = Eu4Parser.parseGame(Eu4Parser.detectInstallationFolder().get(), Eu4Parser.getMods(savePath, tokens), this.launcherSettings,
                                                 () -> {
                                                     count.incrementAndGet();
                                                     int progress = ProgressStep.PARSING_GAME.progress;
@@ -168,7 +177,7 @@ public class Eu4Service {
 
                 this.state.setStep(ProgressStep.PARSING_SAVE);
                 this.state.setSubStep(ProgressStep.PARSING_SAVE_INFO);
-                Save save = Eu4Parser.loadSave(savePath, game, Map.of(item -> ClausewitzItem.DEFAULT_NAME.equals(item.getParent().getName()), s -> {
+                Save save = Eu4Parser.loadSave(savePath, game, tokens, Map.of(item -> ClausewitzItem.DEFAULT_NAME.equals(item.getParent().getName()), s -> {
                     if ("provinces".equals(s)) {
                         this.state.setSubStep(ProgressStep.PARSING_SAVE_PROVINCES);
                     } else if ("countries".equals(s)) {
@@ -246,11 +255,11 @@ public class Eu4Service {
                 IntStream.rangeClosed(0, religionsImage.getWidth() / 64).parallel().forEach(j -> {
                     try {
                         List<Religion> religions = save.getGame()
-                                                          .getReligions()
-                                                          .stream()
-                                                          .filter(r -> r.getIcon() != null)
-                                                          .filter(r -> j == (r.getIcon() - 1))
-                                                          .toList();
+                                                       .getReligions()
+                                                       .stream()
+                                                       .filter(r -> r.getIcon() != null)
+                                                       .filter(r -> j == (r.getIcon() - 1))
+                                                       .toList();
 
                         if (CollectionUtils.isNotEmpty(religions)) {
                             religions.forEach(religion -> religionsMap.put(religion.getName(), religion));
@@ -280,11 +289,11 @@ public class Eu4Service {
                 IntStream.rangeClosed(0, estatesImage.getWidth() / 47).parallel().forEach(j -> {
                     try {
                         List<Estate> estates = save.getGame()
-                                                      .getEstates()
-                                                      .stream()
-                                                      .filter(e -> e.getIcon() != null)
-                                                      .filter(e -> j == (e.getIcon() - 1))
-                                                      .toList();
+                                                   .getEstates()
+                                                   .stream()
+                                                   .filter(e -> e.getIcon() != null)
+                                                   .filter(e -> j == (e.getIcon() - 1))
+                                                   .toList();
 
                         if (CollectionUtils.isNotEmpty(estates)) {
                             BufferedImage estateImage = estatesImage.getSubimage(j * 47, 0, 47, 44);
@@ -375,7 +384,8 @@ public class Eu4Service {
                                                  return CompletableFuture.completedFuture(response);
                                              } else {
                                                  try {
-                                                     return sendMissingAssets(response.assetsDTO(), tmpFolder, save, finalColorsFile, provinceFile, religionsMap,
+                                                     return sendMissingAssets(response.assetsDTO(), tmpFolder, save, finalColorsFile, provinceFile,
+                                                                              religionsMap,
                                                                               response.id(), userId)
                                                              .thenCompose(aBoolean -> {
                                                                  if (BooleanUtils.toBoolean(aBoolean)) {
@@ -531,7 +541,9 @@ public class Eu4Service {
                      .parallelStream()
                      .filter(religion -> assets.religions().contains(religion.getName()))
                      .distinct()
-                     .forEach(religion -> toSend.add(religion.getWritenTo()));
+                     .map(Religion::getWritenTo)
+                     .filter(Objects::nonNull)
+                     .forEach(toSend::add);
         }
 
         if (CollectionUtils.isNotEmpty(assets.tradeGoods())) {
@@ -540,7 +552,9 @@ public class Eu4Service {
                 .parallelStream()
                 .filter(good -> assets.tradeGoods().contains(good.getName()))
                 .distinct()
-                .forEach(good -> toSend.add(good.getWritenTo()));
+                .map(TradeGood::getWritenTo)
+                .filter(Objects::nonNull)
+                .forEach(toSend::add);
         }
 
         if (CollectionUtils.isNotEmpty(assets.estates())) {
@@ -549,7 +563,9 @@ public class Eu4Service {
                 .parallelStream()
                 .filter(estate -> assets.estates().contains(estate.getName()))
                 .distinct()
-                .forEach(estate -> toSend.add(estate.getWritenTo()));
+                .map(Estate::getWritenTo)
+                .filter(Objects::nonNull)
+                .forEach(toSend::add);
         }
 
         if (CollectionUtils.isNotEmpty(assets.privileges())) {

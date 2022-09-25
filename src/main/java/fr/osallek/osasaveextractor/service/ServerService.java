@@ -16,6 +16,7 @@ import fr.osallek.osasaveextractor.service.object.server.UploadResponseDTO;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
+import org.codehaus.plexus.util.StringInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -35,11 +36,14 @@ import org.springframework.web.client.RestTemplate;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
@@ -65,6 +69,16 @@ public class ServerService {
         String minVersion = this.restTemplate.getForObject(this.properties.getServerUrl() + "/api/version", String.class);
 
         return this.properties.getVersion().compareTo(new DefaultArtifactVersion(minVersion)) < 0;
+    }
+
+    public Map<Integer, String> getTokens() {
+        return this.restTemplate.execute(this.properties.getServerUrl() + "/data/tokens.txt", HttpMethod.GET, null, response -> {
+            try (ObjectInputStream tokensStream = new ObjectInputStream(response.getBody())) {
+                return (Map<Integer, String>) tokensStream.readObject();
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     public SortedSet<ServerSave> getSaves(String id) {
