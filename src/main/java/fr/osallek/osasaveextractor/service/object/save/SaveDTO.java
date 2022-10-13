@@ -100,6 +100,8 @@ public class SaveDTO {
 
     private final List<WarDTO> wars;
 
+    private final List<TradeNodeDTO> tradeNodes;
+
     public SaveDTO(String userId, String name, String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions,
                    DoubleConsumer percentCountriesConsumer) {
         this.startDate = save.getStartDate();
@@ -297,6 +299,7 @@ public class SaveDTO {
                           .filter(war -> war.getEndDate() == null || war.getEndDate().isAfter(this.startDate))
                           .sorted(Comparator.comparing(WarDTO::getStartDate))
                           .collect(Collectors.toList());
+        this.tradeNodes = save.getTradeNodes().values().stream().map(node -> new TradeNodeDTO(save, node)).toList();
     }
 
     public LocalDate getStartDate() {
@@ -441,5 +444,9 @@ public class SaveDTO {
 
     public List<WarDTO> getWars() {
         return wars;
+    }
+
+    public List<TradeNodeDTO> getTradeNodes() {
+        return tradeNodes;
     }
 }

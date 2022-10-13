@@ -27,6 +27,8 @@ public class ProvinceDTO extends SimpleProvinceDTO {
 
     private final boolean isCity;
 
+    private final String node;
+
     private final Map<String, Integer> improvements;
 
     private final List<String> buildings;
@@ -44,6 +46,7 @@ public class ProvinceDTO extends SimpleProvinceDTO {
         this.autonomy = province.getLocalAutonomy();
         this.institutions = province.getInstitutionsProgress();
         this.isCity = province.isCity();
+        this.node = province.getTradeNode().getName();
         this.improvements = province.getImproveCount();
         this.buildings = province.getBuildings().stream().map(ProvinceBuilding::getName).toList();
         this.colonySize = province.getColonySize();
@@ -82,6 +85,10 @@ public class ProvinceDTO extends SimpleProvinceDTO {
 
     public boolean isCity() {
         return isCity;
+    }
+
+    public String getNode() {
+        return node;
     }
 
     public Map<String, Integer> getImprovements() {
