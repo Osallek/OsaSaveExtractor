@@ -17,16 +17,16 @@ import fr.osallek.eu4parser.model.save.diplomacy.Subsidies;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,7 +39,7 @@ public class CountryDTO extends ImageLocalised {
 
     private final String customName;
 
-    private final List<String> players;
+    private Set<String> players;
 
     private Integer nbProvince;
 
@@ -194,13 +194,17 @@ public class CountryDTO extends ImageLocalised {
 
     private final int nbInstitutions;
 
-    private final Map<LocalDate, String> changedTag;
+    private final SortedMap<LocalDate, String> changedTag;
 
     public CountryDTO(Save save, SaveCountry country, Diplomacy diplomacy, SortedSet<ProvinceDTO> provinces) {
         super(save.getGame().getLocalisation(country.getTag()), country.getWritenTo() != null ? country.getWritenTo().toFile() : country.getFlagFile());
         this.tag = country.getTag();
         this.customName = ClausewitzUtils.removeQuotes(StringUtils.firstNonBlank(country.getCustomName(), country.getName()));
-        this.players = CollectionUtils.isEmpty(country.getPlayers()) ? null : country.getPlayers().stream().map(ClausewitzUtils::removeQuotes).toList();
+        this.players = CollectionUtils.isEmpty(country.getPlayers()) ? null
+                                                                     : country.getPlayers()
+                                                                              .stream()
+                                                                              .map(ClausewitzUtils::removeQuotes)
+                                                                              .collect(Collectors.toCollection(LinkedHashSet::new));
         this.dev = provinces.stream()
                             .filter(p -> p.isOwnerAt(save.getDate(), this.tag))
                             .mapToDouble(p -> NumbersUtils.doubleOrDefault(p.getBaseTax()) + NumbersUtils.doubleOrDefault(p.getBaseProduction())
@@ -401,9 +405,8 @@ public class CountryDTO extends ImageLocalised {
             this.totalExpenses = null;
         }
 
-        this.changedTag = this.history.stream()
-                                      .filter(h -> StringUtils.isNotBlank(h.getChangedTagFrom()))
-                                      .collect(Collectors.toMap(CountryHistoryDTO::getDate, CountryHistoryDTO::getChangedTagFrom, (a, b) -> a));
+        this.changedTag = country.getChangedTags();
+
         List<CountryHistoryDTO> monarchs = this.history.stream().filter(h -> h.getMonarch() != null).toList();
         for (int i = 0; i < monarchs.size(); i++) {
             CountryHistoryDTO h = monarchs.get(i);
@@ -479,8 +482,12 @@ public class CountryDTO extends ImageLocalised {
         return customName;
     }
 
-    public List<String> getPlayers() {
+    public Set<String> getPlayers() {
         return players;
+    }
+
+    public void setPlayers(Set<String> players) {
+        this.players = players;
     }
 
     public Integer getNbProvince() {
@@ -799,7 +806,7 @@ public class CountryDTO extends ImageLocalised {
         return nbInstitutions;
     }
 
-    public Map<LocalDate, String> getChangedTag() {
+    public SortedMap<LocalDate, String> getChangedTag() {
         return changedTag;
     }
 }

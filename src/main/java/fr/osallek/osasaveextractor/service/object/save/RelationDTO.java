@@ -18,6 +18,12 @@ public class RelationDTO {
         this.date = relation.getStartDate();
     }
 
+    public RelationDTO(String first, String second, LocalDate date) {
+        this.first = first;
+        this.second = second;
+        this.date = date;
+    }
+
     public String getFirst() {
         return first;
     }
