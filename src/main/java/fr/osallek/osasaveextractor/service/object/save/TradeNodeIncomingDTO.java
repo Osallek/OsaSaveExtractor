@@ -1,5 +1,6 @@
 package fr.osallek.osasaveextractor.service.object.save;
 
+import fr.osallek.eu4parser.common.NumbersUtils;
 import fr.osallek.eu4parser.model.save.trade.TradeNodeIncoming;
 
 public class TradeNodeIncomingDTO {
@@ -11,7 +12,7 @@ public class TradeNodeIncomingDTO {
     private double added;
 
     public TradeNodeIncomingDTO(Double value) {
-        this.value = value;
+        this.value = NumbersUtils.doubleOrDefault(value);
         this.added = 0d;
     }
 
