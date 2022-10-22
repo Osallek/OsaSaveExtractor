@@ -138,6 +138,13 @@ public class MainController {
         title.getStyleClass().add("h1");
         titleRow.addColumn(new BootstrapColumn(title, new int[] {12, 12, 10, 8, 6}));
 
+        BootstrapRow versionRow = new BootstrapRow(true);
+        Label version = new Label(this.messageSource.getMessage("version", null, Constants.LOCALE) + " " + this.properties.getVersion().toString());
+        version.setAlignment(Pos.BOTTOM_CENTER);
+        version.setMaxWidth(Double.MAX_VALUE);
+        version.getStyleClass().add("h6");
+        versionRow.addColumn(new BootstrapColumn(version, new int[] {12, 12, 10, 8, 6}));
+
         this.serverSavesField = new AutoCompleteTextField<>(new LinkedHashMap<>());
         this.serverSavesField.disableProperty().bind(this.loading.or(this.serverInvalid));
         this.serverSavesField.textProperty()
@@ -359,6 +366,7 @@ public class MainController {
         this.root.addRow(actionRow);
         this.root.addRow(progressRow);
         this.root.addRow(errorRow);
+        this.root.addRow(versionRow);
     }
 
     private void fetchServerSaves() {
