@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class ProvinceHistoryDTO {
 
@@ -151,6 +152,19 @@ public class ProvinceHistoryDTO {
                this.religion != null ||
                this.isCity != null ||
                MapUtils.isNotEmpty(this.buildings);
+    }
+
+    @JsonIgnore
+    public boolean isSame(ProvinceHistoryDTO that) {
+        return Objects.equals(capital, that.capital) && Objects.equals(addCores, that.addCores) && Objects.equals(addClaims, that.addClaims)
+               && Objects.equals(removeCores, that.removeCores) && Objects.equals(removeClaims, that.removeClaims) && Objects.equals(hre, that.hre)
+               && Objects.equals(baseTax, that.baseTax) && Objects.equals(baseProduction, that.baseProduction)
+               && Objects.equals(baseManpower, that.baseManpower) && Objects.equals(tradeGood, that.tradeGood) && Objects.equals(name, that.name)
+               && Objects.equals(tribalOwner, that.tribalOwner) && Objects.equals(advisor, that.advisor)
+               && Objects.equals(nativeHostileness, that.nativeHostileness) && Objects.equals(nativeFerocity, that.nativeFerocity)
+               && Objects.equals(nativeSize, that.nativeSize) && Objects.equals(owner, that.owner) && Objects.equals(fakeOwner, that.fakeOwner)
+               && Objects.equals(controller, that.controller) && Objects.equals(discoveredBy, that.discoveredBy) && Objects.equals(culture, that.culture)
+               && Objects.equals(religion, that.religion) && Objects.equals(isCity, that.isCity) && Objects.equals(buildings, that.buildings);
     }
 
     public LocalDate getDate() {
