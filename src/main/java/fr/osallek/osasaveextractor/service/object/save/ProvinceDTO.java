@@ -2,20 +2,31 @@ package fr.osallek.osasaveextractor.service.object.save;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import fr.osallek.eu4parser.common.Eu4Utils;
+import fr.osallek.eu4parser.common.NumbersUtils;
 import fr.osallek.eu4parser.model.game.Building;
 import fr.osallek.eu4parser.model.save.province.ProvinceBuilding;
 import fr.osallek.eu4parser.model.save.province.SaveProvince;
+import fr.osallek.eu4parser.model.save.war.ActiveWar;
+import fr.osallek.eu4parser.model.save.war.Battle;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 public class ProvinceDTO extends SimpleProvinceDTO {
@@ -43,6 +54,8 @@ public class ProvinceDTO extends SimpleProvinceDTO {
     private final Double colonySize;
 
     private final List<ProvinceHistoryDTO> history = new ArrayList<>();
+
+    private final List<ProvinceLossesDTO> losses;
 
     public ProvinceDTO(SaveProvince province) {
         super(province);
@@ -113,6 +126,27 @@ public class ProvinceDTO extends SimpleProvinceDTO {
                             h.getBuildings().putAll(toAdd);
                         }); //Force remove old building when upgrading
         }
+
+        this.losses = Stream.concat(Optional.ofNullable(province.getSave().getActiveWars()).stream().flatMap(Collection::stream),
+                                    Optional.ofNullable(province.getSave().getPreviousWars()).stream().flatMap(Collection::stream))
+                            .map(ActiveWar::getBattles)
+                            .filter(MapUtils::isNotEmpty)
+                            .map(SortedMap::values)
+                            .filter(CollectionUtils::isNotEmpty)
+                            .flatMap(Collection::stream)
+                            .filter(CollectionUtils::isNotEmpty)
+                            .flatMap(Collection::stream)
+                            .filter(battle -> this.getId() == battle.getLocation())
+                            .collect(Collectors.groupingBy(Battle::getDate))
+                            .entrySet()
+                            .stream()
+                            .map(e -> new ProvinceLossesDTO(e.getKey(), e.getValue()
+                                                                         .stream()
+                                                                         .mapToLong(battle -> NumbersUtils.intOrDefault(battle.getAttacker().getLosses())
+                                                                                              + NumbersUtils.intOrDefault(battle.getDefender().getLosses()))
+                                                                         .sum()))
+                            .sorted(Comparator.comparing(ProvinceLossesDTO::getDate))
+                            .toList();
     }
 
     public Double getBaseTax() {
@@ -161,6 +195,10 @@ public class ProvinceDTO extends SimpleProvinceDTO {
 
     public Double getColonySize() {
         return colonySize;
+    }
+
+    public List<ProvinceLossesDTO> getLosses() {
+        return losses;
     }
 
     @JsonIgnore
