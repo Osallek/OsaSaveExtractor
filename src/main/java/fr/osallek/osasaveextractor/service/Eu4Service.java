@@ -192,31 +192,74 @@ public class Eu4Service {
                 FileUtils.forceMkdir(tmpFolder.toFile());
 
                 Path provinceFile = Path.of(game.getProvincesImage().getAbsolutePath());
-                Optional<String> provinceChecksum = Constants.getFileChecksum(provinceFile.toFile());
 
-                if (provinceChecksum.isEmpty()) {
+                if (!provinceFile.toFile().exists()) {
                     throw new RuntimeException("Could not get hash of provinces image");
                 }
 
-                Path colorsFile = tmpFolder.resolve("colors").resolve("colors.png");
-                FileUtils.forceMkdirParent(colorsFile.toFile());
-                BufferedImage colorsImage = new BufferedImage(game.getProvinces().size(), 1, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D colorsImageGraphics = colorsImage.createGraphics();
-                int i = 0;
-                for (Province province : game.getProvinces().values()) {
-                    colorsImageGraphics.setColor(new Color(province.getColor()));
-                    colorsImageGraphics.drawLine(i, 0, i, 0);
-                    i++;
-                }
-                ImageIO.write(colorsImage, "PNG", colorsFile.toFile());
+                BufferedImage provinceImage = ImageIO.read(provinceFile.toFile());
+                BufferedImage provinceMapImage = new BufferedImage(provinceImage.getWidth(), provinceImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
+                Graphics2D provinceMapGraphics = provinceMapImage.createGraphics();
 
-                Optional<String> colorsChecksum = Constants.getFileChecksum(colorsFile);
-                if (colorsChecksum.isPresent()) {
-                    File source = colorsFile.toFile();
-                    colorsFile = colorsFile.resolveSibling(colorsChecksum.get() + ".png");
-                    FileUtils.moveFile(source, colorsFile.toFile());
+                for (int y = 0; y < provinceImage.getHeight(); y++) {
+                    for (int x = 0; x < provinceImage.getWidth(); x++) {
+                        Province province = game.getProvincesByColor().get(provinceImage.getRGB(x, y));
+
+                        if (province.isImpassable()) {
+                            provinceMapGraphics.setColor(new Color(200, 255, 255));
+                        } else if (province.isOcean() || province.isLake()) {
+                            provinceMapGraphics.setColor(new Color(227, 255, 255));
+                        } else {
+                            provinceMapGraphics.setColor(new Color(province.getId()));
+                        }
+
+                        if (x < provinceImage.getWidth() - 1) {
+                            Province p2 = game.getProvincesByColor().get(provinceImage.getRGB(x + 1, y));
+
+                            if (!province.equals(p2) && province.getId() < p2.getId()) {
+                                provinceMapGraphics.setColor(Color.BLACK);
+                            }
+                        }
+
+                        if (x > 0) {
+                            Province p2 = game.getProvincesByColor().get(provinceImage.getRGB(x - 1, y));
+
+                            if (!province.equals(p2) && province.getId() < p2.getId()) {
+                                provinceMapGraphics.setColor(Color.BLACK);
+                            }
+                        }
+
+                        if (y < provinceImage.getHeight() - 1) {
+                            Province p2 = game.getProvincesByColor().get(provinceImage.getRGB(x, y + 1));
+
+                            if (!province.equals(p2) && province.getId() < p2.getId()) {
+                                provinceMapGraphics.setColor(Color.BLACK);
+                            }
+                        }
+
+                        if (y > 0) {
+                            Province p2 = game.getProvincesByColor().get(provinceImage.getRGB(x, y - 1));
+
+                            if (!province.equals(p2) && province.getId() < p2.getId()) {
+                                provinceMapGraphics.setColor(Color.BLACK);
+                            }
+                        }
+
+                        provinceMapGraphics.drawRect(x, y, 1, 1);
+                    }
+                }
+
+                Path provinceMapFile = tmpFolder.resolve("provinces").resolve("provinces.png");
+                FileUtils.forceMkdirParent(provinceMapFile.toFile());
+                ImageIO.write(provinceMapImage, "PNG", provinceMapFile.toFile());
+
+                Optional<String> provinceChecksum = Constants.getFileChecksum(provinceMapFile);
+                if (provinceChecksum.isPresent()) {
+                    File source = provinceMapFile.toFile();
+                    provinceMapFile = provinceMapFile.resolveSibling(provinceChecksum.get() + ".png");
+                    FileUtils.moveFile(source, provinceMapFile.toFile());
                 } else {
-                    throw new RuntimeException("Could not get hash of colors image");
+                    throw new RuntimeException("Could not get hash of provinces image");
                 }
 
                 Path goodsTmpFolder = tmpFolder.resolve("goods");
@@ -348,7 +391,7 @@ public class Eu4Service {
                         }
                     });
 
-                SaveDTO saveDTO = new SaveDTO(userId, name, previousSave, save, provinceChecksum.get(), colorsChecksum.get(), religionsMap,
+                SaveDTO saveDTO = new SaveDTO(userId, name, previousSave, save, provinceChecksum.get(), religionsMap,
                                               value -> {
                                                   this.state.setSubStep(ProgressStep.GENERATING_DATA_COUNTRIES);
                                                   int progress = ProgressStep.GENERATING_DATA_COUNTRIES.progress;
@@ -362,7 +405,7 @@ public class Eu4Service {
                 this.state.setStep(ProgressStep.SENDING_DATA);
                 this.state.setSubStep(null);
 
-                Path finalColorsFile = colorsFile;
+                Path finalProvinceMapFile = provinceMapFile;
                 return this.serverService.uploadData(saveDTO)
                                          .whenComplete((s, throwable) -> {
                                              if (throwable != null) {
@@ -384,8 +427,7 @@ public class Eu4Service {
                                                  return CompletableFuture.completedFuture(response);
                                              } else {
                                                  try {
-                                                     return sendMissingAssets(response.assetsDTO(), tmpFolder, save, finalColorsFile, provinceFile,
-                                                                              religionsMap,
+                                                     return sendMissingAssets(response.assetsDTO(), tmpFolder, save, finalProvinceMapFile, religionsMap,
                                                                               response.id(), userId)
                                                              .thenCompose(aBoolean -> {
                                                                  if (BooleanUtils.toBoolean(aBoolean)) {
@@ -441,28 +483,12 @@ public class Eu4Service {
         }).completable().thenCompose(unused -> unused);
     }
 
-    private CompletableFuture<Boolean> sendMissingAssets(AssetsDTO assets, Path tmpFolder, Save save, Path colorsFile, Path provinceFile,
+    private CompletableFuture<Boolean> sendMissingAssets(AssetsDTO assets, Path tmpFolder, Save save, Path provinceMapFile,
                                                          Map<String, Religion> religions, String id, String userId) throws IOException {
         Queue<Path> toSend = new ConcurrentLinkedQueue<>();
 
         if (assets.provinces()) {
-            Path provinceMapFile = tmpFolder.resolve("provinces").resolve("provinces.png");
-            FileUtils.forceMkdirParent(provinceMapFile.toFile());
-            ImageIO.write(ImageIO.read(provinceFile.toFile()), "PNG", provinceMapFile.toFile());
-
-            Optional<String> provinceChecksum = Constants.getFileChecksum(provinceFile);
-            if (provinceChecksum.isPresent()) {
-                File source = provinceMapFile.toFile();
-                provinceMapFile = provinceMapFile.resolveSibling(provinceChecksum.get() + ".png");
-                FileUtils.moveFile(source, provinceMapFile.toFile());
-                toSend.add(provinceMapFile);
-            } else {
-                throw new RuntimeException("Could not get hash of provinces image");
-            }
-        }
-
-        if (assets.colors()) {
-            toSend.add(colorsFile);
+            toSend.add(provinceMapFile);
         }
 
         if (CollectionUtils.isNotEmpty(assets.countries())) {

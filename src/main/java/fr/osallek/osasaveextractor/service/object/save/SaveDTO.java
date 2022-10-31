@@ -47,8 +47,6 @@ public class SaveDTO {
 
     private final String provinceImage;
 
-    private final String colorsImage;
-
     private final LocalDate date;
 
     private final int nbProvinces;
@@ -105,7 +103,7 @@ public class SaveDTO {
 
     private final List<TradeNodeDTO> tradeNodes;
 
-    public SaveDTO(String userId, String name, String previousSave, Save save, String provinceImage, String colorsImage, Map<String, Religion> religions,
+    public SaveDTO(String userId, String name, String previousSave, Save save, String provinceImage, Map<String, Religion> religions,
                    DoubleConsumer percentCountriesConsumer) {
         this.startDate = save.getStartDate();
         this.owner = userId;
@@ -113,7 +111,6 @@ public class SaveDTO {
         this.version = ClausewitzUtils.removeQuotes(save.getSavegameVersions().get(0));
         this.previousSave = previousSave;
         this.provinceImage = provinceImage;
-        this.colorsImage = colorsImage;
         this.name = name;
         this.date = save.getDate();
         this.nbProvinces = Collections.max(save.getGame().getProvinces().keySet()); //Get the greatest id
@@ -352,10 +349,6 @@ public class SaveDTO {
 
     public String getProvinceImage() {
         return provinceImage;
-    }
-
-    public String getColorsImage() {
-        return colorsImage;
     }
 
     public LocalDate getDate() {
