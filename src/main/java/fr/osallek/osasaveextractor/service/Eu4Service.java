@@ -213,35 +213,37 @@ public class Eu4Service {
                             provinceMapGraphics.setColor(new Color(province.getId()));
                         }
 
-                        if (x < provinceImage.getWidth() - 1) {
-                            Province p2 = game.getProvincesByColor().get(provinceImage.getRGB(x + 1, y));
+                        if (!province.isOcean() && !province.isLake()) {
+                            if (x < provinceImage.getWidth() - 1) {
+                                Province p2 = game.getProvincesByColor().get(provinceImage.getRGB(x + 1, y));
 
-                            if (!province.equals(p2) && province.getId() < p2.getId()) {
-                                provinceMapGraphics.setColor(Color.BLACK);
+                                if ((!province.equals(p2) && province.getId() < p2.getId()) || p2.isOcean() || p2.isLake()) {
+                                    provinceMapGraphics.setColor(Color.BLACK);
+                                }
                             }
-                        }
 
-                        if (x > 0) {
-                            Province p2 = game.getProvincesByColor().get(provinceImage.getRGB(x - 1, y));
+                            if (x > 0) {
+                                Province p2 = game.getProvincesByColor().get(provinceImage.getRGB(x - 1, y));
 
-                            if (!province.equals(p2) && province.getId() < p2.getId()) {
-                                provinceMapGraphics.setColor(Color.BLACK);
+                                if ((!province.equals(p2) && province.getId() < p2.getId()) || p2.isOcean() || p2.isLake()) {
+                                    provinceMapGraphics.setColor(Color.BLACK);
+                                }
                             }
-                        }
 
-                        if (y < provinceImage.getHeight() - 1) {
-                            Province p2 = game.getProvincesByColor().get(provinceImage.getRGB(x, y + 1));
+                            if (y < provinceImage.getHeight() - 1) {
+                                Province p2 = game.getProvincesByColor().get(provinceImage.getRGB(x, y + 1));
 
-                            if (!province.equals(p2) && province.getId() < p2.getId()) {
-                                provinceMapGraphics.setColor(Color.BLACK);
+                                if ((!province.equals(p2) && province.getId() < p2.getId()) || p2.isOcean() || p2.isLake()) {
+                                    provinceMapGraphics.setColor(Color.BLACK);
+                                }
                             }
-                        }
 
-                        if (y > 0) {
-                            Province p2 = game.getProvincesByColor().get(provinceImage.getRGB(x, y - 1));
+                            if (y > 0) {
+                                Province p2 = game.getProvincesByColor().get(provinceImage.getRGB(x, y - 1));
 
-                            if (!province.equals(p2) && province.getId() < p2.getId()) {
-                                provinceMapGraphics.setColor(Color.BLACK);
+                                if ((!province.equals(p2) && province.getId() < p2.getId()) || p2.isOcean() || p2.isLake()) {
+                                    provinceMapGraphics.setColor(Color.BLACK);
+                                }
                             }
                         }
 
