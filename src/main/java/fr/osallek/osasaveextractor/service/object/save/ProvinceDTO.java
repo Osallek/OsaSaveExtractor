@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -56,6 +55,8 @@ public class ProvinceDTO extends SimpleProvinceDTO {
     private final List<ProvinceHistoryDTO> history = new ArrayList<>();
 
     private final List<ProvinceLossesDTO> losses;
+
+    private final List<GreatProjectDTO> greatProjects = new ArrayList<>();
 
     public ProvinceDTO(SaveProvince province) {
         super(province);
@@ -147,6 +148,14 @@ public class ProvinceDTO extends SimpleProvinceDTO {
                                                                          .sum()))
                             .sorted(Comparator.comparing(ProvinceLossesDTO::getDate))
                             .toList();
+
+        if (CollectionUtils.isNotEmpty(province.getGreatProjects())) {
+            province.getGreatProjects()
+                    .stream()
+                    .filter(greatProject -> greatProject.getGreatProject() != null)
+                    .map(greatProject -> new GreatProjectDTO(province.getSave(), greatProject))
+                    .forEach(this.greatProjects::add);
+        }
     }
 
     public Double getBaseTax() {
@@ -199,6 +208,10 @@ public class ProvinceDTO extends SimpleProvinceDTO {
 
     public List<ProvinceLossesDTO> getLosses() {
         return losses;
+    }
+
+    public List<GreatProjectDTO> getGreatProjects() {
+        return greatProjects;
     }
 
     @JsonIgnore
