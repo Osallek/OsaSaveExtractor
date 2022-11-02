@@ -63,7 +63,7 @@ public class CountryDTO extends ImageLocalised {
 
     private final List<EstateDTO> estates;
 
-    private final Pair<String, Double> hegemony;
+    private final Map<String, Double> hegemony;
 
     private final List<String> rivals;
 
@@ -220,7 +220,7 @@ public class CountryDTO extends ImageLocalised {
         this.admTech = country.getTech().getAdm();
         this.dipTech = country.getTech().getDip();
         this.estates = country.getEstates().stream().map(EstateDTO::new).toList();
-        this.hegemony = country.getHegemon() == null ? null : Pair.of(country.getHegemon().hegemon().getName(), country.getHegemon().getProgress());
+        this.hegemony = country.getHegemon() == null ? null : Map.of(country.getHegemon().hegemon().getName(), country.getHegemon().getProgress());
         this.rivals = country.getRivals().keySet().stream().toList();
         this.powerProjection = country.getPowerProjections().stream().mapToDouble(PowerProjection::getCurrent).sum();
         this.loans = country.getLoans().stream().map(LoanDTO::new).toList();
@@ -542,7 +542,7 @@ public class CountryDTO extends ImageLocalised {
         return estates;
     }
 
-    public Pair<String, Double> getHegemony() {
+    public Map<String, Double> getHegemony() {
         return hegemony;
     }
 
