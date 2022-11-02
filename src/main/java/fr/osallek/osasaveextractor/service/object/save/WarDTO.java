@@ -1,5 +1,6 @@
 package fr.osallek.osasaveextractor.service.object.save;
 
+import fr.osallek.eu4parser.common.NumbersUtils;
 import fr.osallek.eu4parser.model.save.war.ActiveWar;
 import fr.osallek.eu4parser.model.save.war.PreviousWar;
 import org.apache.commons.lang3.ObjectUtils;
@@ -33,7 +34,7 @@ public class WarDTO {
 
     private final Map<String, WarParticipantDTO> defenders;
 
-    private final Double score;
+    private final Integer score;
 
     private final Integer outcome;
 
@@ -53,7 +54,7 @@ public class WarDTO {
                             .stream()
                             .collect(Collectors.toMap(entry -> entry.getKey().getTag(), entry -> new WarParticipantDTO(entry.getValue()), (a, b) -> a,
                                                       LinkedHashMap::new));
-        this.score = war.getScore();
+        this.score = NumbersUtils.intOrDefault(war.getLastWarScoreQuarter());
         this.history = war.getEvents().stream().map(WarHistoryEventDTO::new).collect(Collectors.toList());
         this.history = new ArrayList<>(this.history.stream().collect(Collectors.toMap(WarHistoryEventDTO::getDate, Function.identity(),
                                                                                       WarHistoryEventDTO::merge)).values());
@@ -101,7 +102,7 @@ public class WarDTO {
         return defenders;
     }
 
-    public Double getScore() {
+    public Integer getScore() {
         return score;
     }
 
