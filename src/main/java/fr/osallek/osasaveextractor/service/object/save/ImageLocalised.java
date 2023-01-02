@@ -2,6 +2,7 @@ package fr.osallek.osasaveextractor.service.object.save;
 
 import fr.osallek.eu4parser.model.game.localisation.Eu4Language;
 import fr.osallek.eu4parser.model.game.localisation.Localisation;
+import fr.osallek.eu4parser.model.save.Save;
 import fr.osallek.osasaveextractor.common.Constants;
 
 import java.io.File;
@@ -30,6 +31,11 @@ public class ImageLocalised extends Localised {
 
     public ImageLocalised(Map<Eu4Language, Localisation> localisations, File image) {
         super(localisations);
+        Constants.getFileChecksum(image).ifPresent(this::setImage);
+    }
+
+    public ImageLocalised(Save save, Object root, String key, File image) {
+        super(save, root, key);
         Constants.getFileChecksum(image).ifPresent(this::setImage);
     }
 

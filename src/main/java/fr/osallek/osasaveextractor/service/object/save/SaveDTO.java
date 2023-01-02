@@ -97,8 +97,6 @@ public class SaveDTO {
 
     private final List<NamedImageLocalisedDTO> leaderPersonalities;
 
-    private final List<MissionDTO> missions;
-
     private final List<WarDTO> wars;
 
     private final List<TradeNodeDTO> tradeNodes;
@@ -302,12 +300,6 @@ public class SaveDTO {
                                                  .toList();
 
         this.countryName = this.countries.stream().filter(c -> this.country.equals(c.getTag())).findFirst().map(Localised::new).orElse(null);
-        this.missions = this.countries.stream()
-                                      .map(CountryDTO::getMissions)
-                                      .flatMap(Collection::stream)
-                                      .distinct()
-                                      .map(s -> new MissionDTO(save, save.getGame().getMission(s)))
-                                      .toList();
         AtomicInteger warId = new AtomicInteger(1);
         this.wars = Stream.concat(save.getActiveWars().stream(), save.getPreviousWars().stream())
                           .filter(war -> MapUtils.isNotEmpty(war.getActionsHistory()))
@@ -449,10 +441,6 @@ public class SaveDTO {
 
     public List<NamedImageLocalisedDTO> getLeaderPersonalities() {
         return leaderPersonalities;
-    }
-
-    public List<MissionDTO> getMissions() {
-        return missions;
     }
 
     public List<WarDTO> getWars() {

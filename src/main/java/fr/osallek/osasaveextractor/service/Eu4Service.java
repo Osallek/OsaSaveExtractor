@@ -6,6 +6,7 @@ import fr.osallek.eu4parser.Eu4Parser;
 import fr.osallek.eu4parser.common.Eu4Utils;
 import fr.osallek.eu4parser.common.ImageReader;
 import fr.osallek.eu4parser.model.LauncherSettings;
+import fr.osallek.eu4parser.model.game.Building;
 import fr.osallek.eu4parser.model.game.Estate;
 import fr.osallek.eu4parser.model.game.Game;
 import fr.osallek.eu4parser.model.game.IdeaGroup;
@@ -57,6 +58,9 @@ import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -551,17 +555,39 @@ public class Eu4Service {
 
         if (CollectionUtils.isNotEmpty(assets.buildings())) {
             Path cPath = tmpFolder.resolve("buildings");
-            save.getGame().getBuildings().parallelStream().filter(building -> assets.buildings().contains(building.getName())).distinct().forEach(building -> {
-                File file = building.getImage();
+            List<Building> buildings = save.getGame()
+                                           .getBuildings()
+                                           .stream()
+                                           .filter(building -> assets.buildings().contains(building.getName()))
+                                           .distinct()
+                                           .toList();
 
-                Constants.getFileChecksum(file).ifPresent(checksum -> {
-                    Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+            CountDownLatch countDownLatch = new CountDownLatch(buildings.size());
+            ExecutorService poolExecutor = Executors.newFixedThreadPool(8);
+            for (Building building : buildings) {
+                poolExecutor.submit(() -> {
+                    try {
+                        File file = building.getImage();
 
-                    if (image != null) {
-                        toSend.add(cPath.resolve(image));
+                        Constants.getFileChecksum(file).ifPresent(checksum -> {
+                            Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+
+                            if (image != null) {
+                                toSend.add(cPath.resolve(image));
+                            }
+                        });
+                    } finally {
+                        countDownLatch.countDown();
                     }
                 });
-            });
+            }
+
+            try {
+                countDownLatch.await();
+            } catch (InterruptedException e) {
+                LOGGER.error("An error occurred while waiting for building images: {}", e.getMessage(), e);
+                poolExecutor.shutdownNow();
+            }
         }
 
         if (CollectionUtils.isNotEmpty(assets.religions())) {

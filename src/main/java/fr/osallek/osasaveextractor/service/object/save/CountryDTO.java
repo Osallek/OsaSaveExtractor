@@ -16,7 +16,6 @@ import fr.osallek.eu4parser.model.save.diplomacy.Diplomacy;
 import fr.osallek.eu4parser.model.save.diplomacy.Subsidies;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -84,9 +83,7 @@ public class CountryDTO extends ImageLocalised {
 
     private final List<CustomNationalIdeaDTO> customNationalIdeas;
 
-    private final List<String> missions;
-
-    private final List<String> completedMissions;
+    private final List<MissionDTO> missions;
 
     private final SortedMap<Integer, Integer> incomeStatistics;
 
@@ -234,8 +231,13 @@ public class CountryDTO extends ImageLocalised {
                                                                                                              .stream()
                                                                                                              .map(CustomNationalIdeaDTO::new)
                                                                                                              .toList();
-        this.missions = country.getCountryMissions().getMissions().stream().map(Mission::getName).toList();
-        this.completedMissions = country.getCompletedMissions().stream().map(Mission::getName).filter(Objects::nonNull).toList();
+        List<String> completedMissions = country.getCompletedMissions().stream().map(Mission::getName).filter(Objects::nonNull).toList();
+        this.missions = country.getCountryMissions()
+                               .getMissions()
+                               .stream()
+                               .distinct()
+                               .map(m -> new MissionDTO(country, m, completedMissions.contains(m.getName())))
+                               .toList();
         this.incomeStatistics = country.getIncomeStatistics();
         this.nationSizeStatistics = country.getNationSizeStatistics();
         this.scoreStatistics = country.getScoreStatistics();
@@ -586,12 +588,8 @@ public class CountryDTO extends ImageLocalised {
         return customNationalIdeas;
     }
 
-    public List<String> getMissions() {
+    public List<MissionDTO> getMissions() {
         return missions;
-    }
-
-    public List<String> getCompletedMissions() {
-        return completedMissions;
     }
 
     public SortedMap<Integer, Integer> getIncomeStatistics() {

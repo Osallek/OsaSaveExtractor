@@ -1,6 +1,7 @@
 package fr.osallek.osasaveextractor.service.object.save;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.common.Eu4Utils;
 import fr.osallek.eu4parser.common.NumbersUtils;
 import fr.osallek.eu4parser.model.game.Building;
@@ -67,7 +68,7 @@ public class ProvinceDTO extends SimpleProvinceDTO {
         this.autonomy = province.getLocalAutonomy();
         this.institutions = province.getInstitutionsProgress();
         this.isCity = province.isCity();
-        this.node = province.getTradeNode().getName();
+        this.node = ClausewitzUtils.removeQuotes(province.getTrade());
         this.improvements = province.getImproveCount();
         this.buildings = province.getBuildings().stream().map(ProvinceBuilding::getName).toList();
         this.colonySize = province.getColonySize();

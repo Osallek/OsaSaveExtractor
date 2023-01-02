@@ -2,6 +2,7 @@ package fr.osallek.osasaveextractor.service.object.save;
 
 import fr.osallek.eu4parser.model.game.localisation.Eu4Language;
 import fr.osallek.eu4parser.model.game.localisation.Localisation;
+import fr.osallek.eu4parser.model.save.Save;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -48,6 +49,11 @@ public class NamedImageLocalisedDTO extends ImageLocalised {
 
     public NamedImageLocalisedDTO(Map<Eu4Language, Localisation> localisations, File image, String name) {
         super(localisations, image);
+        this.name = name;
+    }
+
+    public NamedImageLocalisedDTO(Save save, Object root, String key, File image, String name) {
+        super(save, root, key, image);
         this.name = name;
     }
 
