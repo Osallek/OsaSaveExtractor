@@ -83,7 +83,7 @@ public class CountryDTO extends ImageLocalised {
 
     private final List<CustomNationalIdeaDTO> customNationalIdeas;
 
-    private final List<MissionDTO> missions;
+    private final List<MissionDTO> missions2;
 
     private final SortedMap<Integer, Integer> incomeStatistics;
 
@@ -232,12 +232,12 @@ public class CountryDTO extends ImageLocalised {
                                                                                                              .map(CustomNationalIdeaDTO::new)
                                                                                                              .toList();
         List<String> completedMissions = country.getCompletedMissions().stream().map(Mission::getName).filter(Objects::nonNull).toList();
-        this.missions = country.getCountryMissions()
-                               .getMissions()
-                               .stream()
-                               .distinct()
-                               .map(m -> new MissionDTO(country, m, completedMissions.contains(m.getName())))
-                               .toList();
+        this.missions2 = country.getCountryMissions()
+                                .getMissions()
+                                .stream()
+                                .distinct()
+                                .map(m -> new MissionDTO(country, m, completedMissions.contains(m.getName())))
+                                .toList();
         this.incomeStatistics = country.getIncomeStatistics();
         this.nationSizeStatistics = country.getNationSizeStatistics();
         this.scoreStatistics = country.getScoreStatistics();
@@ -588,8 +588,8 @@ public class CountryDTO extends ImageLocalised {
         return customNationalIdeas;
     }
 
-    public List<MissionDTO> getMissions() {
-        return missions;
+    public List<MissionDTO> getMissions2() {
+        return missions2;
     }
 
     public SortedMap<Integer, Integer> getIncomeStatistics() {
