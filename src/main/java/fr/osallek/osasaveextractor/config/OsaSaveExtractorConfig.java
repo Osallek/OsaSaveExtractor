@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import fr.osallek.eu4parser.model.LauncherSettings;
 import fr.osallek.osasaveextractor.controller.object.DataAssetDTO;
 import fr.osallek.osasaveextractor.controller.object.ErrorObject;
 import fr.osallek.osasaveextractor.service.object.server.ServerSave;
@@ -19,7 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 @Configuration
-@RegisterReflectionForBinding({ServerSave.class, UploadResponseDTO.class, ErrorObject.class, DataAssetDTO.class})
+@RegisterReflectionForBinding({ServerSave.class, UploadResponseDTO.class, ErrorObject.class, DataAssetDTO.class, LauncherSettings.class})
 public class OsaSaveExtractorConfig {
 
     @Bean
