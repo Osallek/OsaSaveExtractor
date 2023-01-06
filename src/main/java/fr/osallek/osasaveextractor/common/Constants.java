@@ -1,12 +1,14 @@
 package fr.osallek.osasaveextractor.common;
 
 import fr.osallek.osasaveextractor.service.object.save.ColorDTO;
+import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -80,5 +82,21 @@ public final class Constants {
             hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
         }
         return new String(hexChars, StandardCharsets.UTF_8);
+    }
+
+    public static void openLink(String url) {
+        Runtime runtime = Runtime.getRuntime();
+
+        try {
+            if (SystemUtils.IS_OS_WINDOWS) {
+                runtime.exec("explorer " + url);
+            } else if (SystemUtils.IS_OS_MAC) {
+                runtime.exec("open " + url);
+            } else if (SystemUtils.IS_OS_LINUX) {
+                runtime.exec("xdg-open " + url);
+            }
+        } catch (IOException e) {
+            LOGGER.error("An error occurred while trying to open browser: {}", e.getMessage(), e);
+        }
     }
 }

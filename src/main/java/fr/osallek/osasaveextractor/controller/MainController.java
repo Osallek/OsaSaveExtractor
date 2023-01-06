@@ -11,7 +11,6 @@ import fr.osallek.osasaveextractor.controller.object.SteamIdConverter;
 import fr.osallek.osasaveextractor.service.Eu4Service;
 import fr.osallek.osasaveextractor.service.ServerService;
 import fr.osallek.osasaveextractor.service.object.server.ServerSave;
-import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -38,6 +37,7 @@ import javafx.stage.Stage;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hc.core5.http.ParseException;
 import org.kordamp.bootstrapfx.scene.layout.Panel;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
@@ -46,7 +46,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.SortedSet;
@@ -61,8 +60,6 @@ public class MainController {
     private final ServerService serverService;
 
     private final MessageSource messageSource;
-
-    private final Application application;
 
     private final ApplicationProperties properties;
 
@@ -95,16 +92,14 @@ public class MainController {
     private Stage stage;
 
 
-    public MainController(Eu4Service eu4Service, ServerService serverService, MessageSource messageSource, Application application,
-                          ApplicationProperties properties) {
+    public MainController(Eu4Service eu4Service, ServerService serverService, MessageSource messageSource, ApplicationProperties properties) {
         this.eu4Service = eu4Service;
         this.serverService = serverService;
         this.messageSource = messageSource;
-        this.application = application;
         this.properties = properties;
     }
 
-    public void prepareView() throws IOException {
+    public void prepareView() throws IOException, ParseException {
         this.root = new BootstrapPane();
         this.root.setPadding(new Insets(50));
         this.root.setVgap(25);
@@ -174,10 +169,8 @@ public class MainController {
 
         Button savesButton = new Button(this.messageSource.getMessage("ose.view-saves", null, Constants.LOCALE));
         savesButton.getStyleClass().addAll("btn", "btn-default");
-        savesButton.setOnAction(event -> this.application.getHostServices()
-                                                         .showDocument(this.properties.getFrontUrl() + "/user/" + this.steamIdBox.getSelectionModel()
-                                                                                                                                 .selectedItemProperty()
-                                                                                                                                 .get().getKey()));
+        savesButton.setOnAction(event -> Constants.openLink(this.properties.getFrontUrl() + "/user/" +
+                                                            this.steamIdBox.getSelectionModel().selectedItemProperty().get().getKey()));
 
         if (MapUtils.isEmpty(this.eu4Service.getSteamIds())) {
             this.steamIdBox = new ComboBox<>();
@@ -350,7 +343,7 @@ public class MainController {
         this.finishedButton = new Button(this.messageSource.getMessage("ose.view-save", null, Constants.LOCALE));
         this.finishedButton.getStyleClass().addAll("btn", "btn-primary");
         this.finishedButton.setVisible(false);
-        this.finishedButton.setOnAction(event -> this.application.getHostServices().showDocument(this.eu4Service.getState().getLink()));
+        this.finishedButton.setOnAction(event -> Constants.openLink(this.eu4Service.getState().getLink()));
 
         this.progressVBox = new VBox(10);
         this.progressVBox.setAlignment(Pos.CENTER);
@@ -385,7 +378,7 @@ public class MainController {
         }
     }
 
-    public GridPane getScene() throws IOException {
+    public GridPane getScene() throws IOException, ParseException {
         if (this.root == null) {
             prepareView();
         }

@@ -586,6 +586,7 @@ public class Eu4Service {
                 countDownLatch.await();
             } catch (InterruptedException e) {
                 LOGGER.error("An error occurred while waiting for building images: {}", e.getMessage(), e);
+            } finally {
                 poolExecutor.shutdownNow();
             }
         }
