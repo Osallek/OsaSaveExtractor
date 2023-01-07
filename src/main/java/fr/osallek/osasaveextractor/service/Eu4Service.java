@@ -151,7 +151,7 @@ public class Eu4Service {
         return new ArrayList<>();
     }
 
-    public CompletableFuture<Void> parseSave(Path toAnalyse, String name, String previousSave, String userId, Consumer<String> error) {
+    public CompletableFuture<Void> parseSave(Path toAnalyse, String name, String previousSave, String userId, boolean hideAll, Consumer<String> error) {
         this.state = new ProgressState(ProgressStep.NONE, this.messageSource, Constants.LOCALE);
         Path tmpFolder = Path.of(FileUtils.getTempDirectoryPath(), UUID.randomUUID().toString());
 
@@ -397,7 +397,7 @@ public class Eu4Service {
                         }
                     });
 
-                SaveDTO saveDTO = new SaveDTO(userId, name, previousSave, save, provinceChecksum.get(), religionsMap,
+                SaveDTO saveDTO = new SaveDTO(userId, name, previousSave, save, hideAll, provinceChecksum.get(), religionsMap,
                                               value -> {
                                                   this.state.setSubStep(ProgressStep.GENERATING_DATA_COUNTRIES);
                                                   int progress = ProgressStep.GENERATING_DATA_COUNTRIES.progress;

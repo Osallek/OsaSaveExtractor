@@ -18,6 +18,7 @@ import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
@@ -78,6 +79,8 @@ public class MainController {
     private ComboBox<Path> localSavesCombo;
 
     private AutoCompleteTextField<ServerSave> serverSavesField;
+
+    private CheckBox hideAllBox;
 
     private final BooleanProperty serverSavesInvalid = new SimpleBooleanProperty();
 
@@ -207,8 +210,7 @@ public class MainController {
         Panel localSavesPanel = new Panel();
         localSavesPanel.getStyleClass().add("panel-default");
 
-        Label localSavesTitleLabel = new Label(this.messageSource.getMessage("ose.local-saves", null,
-                                                                             Constants.LOCALE));
+        Label localSavesTitleLabel = new Label(this.messageSource.getMessage("ose.local-saves", null, Constants.LOCALE));
         localSavesTitleLabel.getStyleClass().addAll("h5", "b");
         localSavesPanel.setHeading(localSavesTitleLabel);
 
@@ -219,8 +221,7 @@ public class MainController {
             this.localSavesCombo.setVisibleRowCount(20);
             this.localSavesCombo.setCellFactory(param -> new LocalSaveListCell(this.eu4Service));
             this.localSavesCombo.setButtonCell(new LocalSaveListCell(this.eu4Service));
-            this.localSavesCombo.setPromptText(this.messageSource.getMessage("ose.local-saves.choose", null,
-                                                                             Constants.LOCALE));
+            this.localSavesCombo.setPromptText(this.messageSource.getMessage("ose.local-saves.choose", null, Constants.LOCALE));
             this.localSavesCombo.disableProperty().bind(this.loading.or(this.serverInvalid));
             this.localSavesCombo.getSelectionModel()
                                 .selectedItemProperty()
@@ -242,8 +243,7 @@ public class MainController {
             saveNameBox.getChildren().add(saveNameLabel);
             saveNameBox.getChildren().add(this.saveNameField);
 
-            HBox localSavesBox = new HBox();
-            localSavesBox.setSpacing(20);
+            HBox localSavesBox = new HBox(20);
             localSavesBox.getChildren().add(this.localSavesCombo);
             localSavesBox.getChildren().add(saveNameBox);
 
@@ -303,7 +303,7 @@ public class MainController {
             this.eu4Service.parseSave(this.localSavesCombo.getSelectionModel().selectedItemProperty().get(),
                                       this.saveNameField.getText(),
                                       this.serverSavesField.getSelected() != null ? this.serverSavesField.getSelected().id() : this.serverSavesField.getText(),
-                                      this.steamIdBox.getSelectionModel().selectedItemProperty().get().getKey(),
+                                      this.steamIdBox.getSelectionModel().selectedItemProperty().get().getKey(), this.hideAllBox.isSelected(),
                                       s -> this.errorText.setText(this.messageSource.getMessage("ose.server.error." + s, null, Constants.LOCALE)))
                            .whenComplete((o, throwable) -> {
                                this.loading.set(false);
@@ -330,7 +330,13 @@ public class MainController {
             this.progressText.textProperty().bind(this.eu4Service.getState().labelProperty());
         });
 
-        actionRow.addColumn(new BootstrapColumn(submitButton, new int[] {12, 12, 10, 8, 6}));
+        this.hideAllBox = new CheckBox(this.messageSource.getMessage("ose.hide-all", null, Constants.LOCALE));
+
+        VBox actionVBox = new VBox(20);
+        actionVBox.getChildren().add(this.hideAllBox);
+        actionVBox.getChildren().add(submitButton);
+
+        actionRow.addColumn(new BootstrapColumn(actionVBox, new int[] {12, 12, 10, 8, 6}));
 
         BootstrapRow progressRow = new BootstrapRow(true);
 

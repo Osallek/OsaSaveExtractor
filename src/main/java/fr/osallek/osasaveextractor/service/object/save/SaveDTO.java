@@ -33,6 +33,8 @@ public class SaveDTO {
 
     private final LocalDate startDate;
 
+    private final boolean hideAll;
+
     private final String owner;
 
     private final String country;
@@ -101,13 +103,14 @@ public class SaveDTO {
 
     private final List<TradeNodeDTO> tradeNodes;
 
-    public SaveDTO(String userId, String name, String previousSave, Save save, String provinceImage, Map<String, Religion> religions,
+    public SaveDTO(String userId, String name, String previousSave, Save save, boolean hideAll, String provinceImage, Map<String, Religion> religions,
                    DoubleConsumer percentCountriesConsumer) {
         this.startDate = save.getStartDate();
         this.owner = userId;
         this.country = save.getPlayedCountry().getTag();
         this.version = ClausewitzUtils.removeQuotes(save.getSavegameVersions().get(0));
         this.previousSave = previousSave;
+        this.hideAll = hideAll;
         this.provinceImage = provinceImage;
         this.name = name;
         this.date = save.getDate();
@@ -313,6 +316,10 @@ public class SaveDTO {
 
     public LocalDate getStartDate() {
         return startDate;
+    }
+
+    public boolean isHideAll() {
+        return hideAll;
     }
 
     public String getOwner() {
