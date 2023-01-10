@@ -1,9 +1,11 @@
 package fr.osallek.osasaveextractor.config;
 
 import fr.osallek.osasaveextractor.controller.MainController;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import org.apache.hc.client5.http.HttpHostConnectException;
 import org.kordamp.bootstrapfx.BootstrapFX;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +35,12 @@ public class StageInitializer implements ApplicationListener<StageReadyEvent> {
             stage.setTitle("Osa Save Extractor");
             stage.getIcons().add(new Image(getClass().getResourceAsStream("/public/favicon.ico")));
             stage.show();
+        }catch (HttpHostConnectException e) {
+            LOGGER.error("Could not reach the server, try again later!");
+            Platform.exit();
         } catch (Exception e) {
             LOGGER.error("{}", e.getMessage(), e);
+            Platform.exit();
         }
     }
 }

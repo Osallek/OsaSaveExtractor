@@ -102,7 +102,7 @@ public class MainController {
         this.properties = properties;
     }
 
-    public void prepareView() throws IOException, ParseException {
+    public void prepareView() throws IOException {
         this.root = new BootstrapPane();
         this.root.setPadding(new Insets(50));
         this.root.setVgap(25);
@@ -384,7 +384,7 @@ public class MainController {
         }
     }
 
-    public GridPane getScene() throws IOException, ParseException {
+    public GridPane getScene() throws IOException {
         if (this.root == null) {
             prepareView();
         }
