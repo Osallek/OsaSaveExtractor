@@ -35,7 +35,7 @@ public class StageInitializer implements ApplicationListener<StageReadyEvent> {
             stage.setTitle("Osa Save Extractor");
             stage.getIcons().add(new Image(getClass().getResourceAsStream("/public/favicon.ico")));
             stage.show();
-        }catch (HttpHostConnectException e) {
+        } catch (HttpHostConnectException e) {
             LOGGER.error("Could not reach the server, try again later!");
             Platform.exit();
         } catch (Exception e) {
