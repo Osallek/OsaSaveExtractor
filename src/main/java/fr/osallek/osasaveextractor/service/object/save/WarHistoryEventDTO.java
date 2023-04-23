@@ -1,6 +1,6 @@
 package fr.osallek.osasaveextractor.service.object.save;
 
-import fr.osallek.eu4parser.model.save.war.WarHistoryEvent;
+import fr.osallek.eu4parser.model.game.WarHistoryEvent;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 

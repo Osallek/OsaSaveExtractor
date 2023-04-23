@@ -1,6 +1,6 @@
 package fr.osallek.osasaveextractor.service.object.save;
 
-import fr.osallek.eu4parser.model.save.war.Battle;
+import fr.osallek.eu4parser.model.game.Battle;
 
 import java.time.LocalDate;
 

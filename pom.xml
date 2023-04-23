@@ -11,15 +11,15 @@
 
 	<groupId>fr.osallek</groupId>
 	<artifactId>osa-save-extractor</artifactId>
-	<version>1.0.21</version>
+	<version>1.0.22</version>
 	<name>Osa Save Extractor</name>
 	<description>Project to extract Paradox&apos;s games saves</description>
 
 	<properties>
 		<java.version>17</java.version>
 
-		<eu4-parser.version>1.1.7</eu4-parser.version>
-		<javafx.version>18.0.1</javafx.version>
+		<eu4-parser.version>1.1.8</eu4-parser.version>
+		<javafx.version>18.0.2</javafx.version>
 		<bootstrapfx-core.version>0.4.0</bootstrapfx-core.version>
 		<maven-artifact.version>3.8.6</maven-artifact.version>
 		<httpclient5.version>5.2.1</httpclient5.version>

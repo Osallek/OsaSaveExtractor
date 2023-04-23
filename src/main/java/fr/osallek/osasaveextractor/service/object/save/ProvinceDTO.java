@@ -8,7 +8,7 @@ import fr.osallek.eu4parser.model.game.Building;
 import fr.osallek.eu4parser.model.save.province.ProvinceBuilding;
 import fr.osallek.eu4parser.model.save.province.SaveProvince;
 import fr.osallek.eu4parser.model.save.war.ActiveWar;
-import fr.osallek.eu4parser.model.save.war.Battle;
+import fr.osallek.eu4parser.model.game.Battle;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
