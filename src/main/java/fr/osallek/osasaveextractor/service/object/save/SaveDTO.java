@@ -108,7 +108,7 @@ public class SaveDTO {
         this.startDate = save.getStartDate();
         this.owner = userId;
         this.country = save.getPlayedCountry().getTag();
-        this.version = ClausewitzUtils.removeQuotes(save.getSavegameVersions().get(0));
+        this.version = ClausewitzUtils.removeQuotes(save.getSavegameVersions().get(save.getSavegameVersions().size() - 1));
         this.previousSave = previousSave;
         this.hideAll = hideAll;
         this.provinceImage = provinceImage;
