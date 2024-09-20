@@ -130,7 +130,7 @@ public class SaveDTO {
         });
 
         this.areas = save.getAreas().values().stream().map(AreaDTO::new).toList();
-        this.advisors = save.getAdvisors().values().stream().map(AdvisorDTO::new).toList();
+        this.advisors = save.getAdvisorsStream().map(AdvisorDTO::new).toList();
 
         AtomicInteger i = new AtomicInteger();
         List<SaveCountry> list = save.getCountries()

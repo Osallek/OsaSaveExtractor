@@ -89,11 +89,11 @@ public final class Constants {
 
         try {
             if (SystemUtils.IS_OS_WINDOWS) {
-                runtime.exec("explorer " + url);
+                runtime.exec(new String[] {"explorer", url});
             } else if (SystemUtils.IS_OS_MAC) {
-                runtime.exec("open " + url);
+                runtime.exec(new String[] {"open", url});
             } else if (SystemUtils.IS_OS_LINUX) {
-                runtime.exec("xdg-open " + url);
+                runtime.exec(new String[] {"xdg-open", url});
             }
         } catch (IOException e) {
             LOGGER.error("An error occurred while trying to open browser: {}", e.getMessage(), e);

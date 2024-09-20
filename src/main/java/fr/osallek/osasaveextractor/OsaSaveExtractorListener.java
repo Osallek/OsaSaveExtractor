@@ -1,6 +1,5 @@
 package fr.osallek.osasaveextractor;
 
-import fr.osallek.eu4parser.common.Eu4Utils;
 import javafx.application.Application;
 import org.springframework.beans.BeansException;
 import org.springframework.boot.ApplicationArguments;
@@ -34,7 +33,6 @@ public class OsaSaveExtractorListener implements ApplicationContextAware {
 
     @EventListener
     public void onApplicationEvent(ContextClosedEvent event) {
-        Eu4Utils.POOL_EXECUTOR.shutdownNow();
         this.executor.shutdown();
     }
 

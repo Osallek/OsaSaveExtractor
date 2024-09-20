@@ -217,7 +217,7 @@ public class ProvinceDTO extends SimpleProvinceDTO {
 
     @JsonIgnore
     public boolean isOwnerAt(LocalDate date, String tag) {
-        String owner = this.history.get(0).getOwner();
+        String owner = this.history.getFirst().getOwner();
         for (ProvinceHistoryDTO h : this.history) {
             if (h.getDate().isAfter(date)) {
                 break;

@@ -5,9 +5,8 @@ import fr.osallek.eu4parser.model.game.localisation.Localisation;
 import fr.osallek.eu4parser.model.save.Save;
 import org.apache.commons.collections4.MapUtils;
 
-import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Localised {
@@ -27,8 +26,10 @@ public class Localised {
         Map<Eu4Language, Localisation> l = save.getGame().getLocalisation(key);
 
         if (MapUtils.isNotEmpty(l)) {
-            this.localisations = new HashMap<>();
-            l.keySet().forEach(language -> this.localisations.put(language, save.getGame().getComputedLocalisation(save, root, key, language)));
+            this.localisations = l.keySet()
+                                  .stream()
+                                  .collect(
+                                          Collectors.toMap(Function.identity(), language -> save.getGame().getComputedLocalisation(save, root, key, language)));
         }
     }
 

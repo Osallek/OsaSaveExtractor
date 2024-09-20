@@ -47,20 +47,18 @@ public class WarDTO {
         this.attackers = war.getPersistentAttackers()
                             .entrySet()
                             .stream()
-                            .collect(Collectors.toMap(entry -> entry.getKey().getTag(), entry -> new WarParticipantDTO(entry.getValue()), (a, b) -> a,
-                                                      LinkedHashMap::new));
+                            .collect(Collectors.toMap(Map.Entry::getKey, entry -> new WarParticipantDTO(entry.getValue()), (a, b) -> a, LinkedHashMap::new));
         this.defenders = war.getPersistentDefenders()
                             .entrySet()
                             .stream()
-                            .collect(Collectors.toMap(entry -> entry.getKey().getTag(), entry -> new WarParticipantDTO(entry.getValue()), (a, b) -> a,
-                                                      LinkedHashMap::new));
+                            .collect(Collectors.toMap(Map.Entry::getKey, entry -> new WarParticipantDTO(entry.getValue()), (a, b) -> a, LinkedHashMap::new));
         this.score = NumbersUtils.intOrDefault(war.getLastWarScoreQuarter());
         this.history = war.getEvents().stream().map(WarHistoryEventDTO::new).collect(Collectors.toList());
         this.history = new ArrayList<>(this.history.stream().collect(Collectors.toMap(WarHistoryEventDTO::getDate, Function.identity(),
                                                                                       WarHistoryEventDTO::merge)).values());
         this.history.sort(Comparator.comparing(WarHistoryEventDTO::getDate));
-        this.startDate = this.history.get(0).getDate();
-        this.endDate = this.finished ? this.history.get(this.history.size() - 1).getDate() : null;
+        this.startDate = this.history.getFirst().getDate();
+        this.endDate = this.finished ? this.history.getLast().getDate() : null;
         this.duration = this.startDate == null ? null : (int) ChronoUnit.MONTHS.between(this.startDate, ObjectUtils.firstNonNull(this.endDate, date));
 
         if (war instanceof PreviousWar previousWar) {

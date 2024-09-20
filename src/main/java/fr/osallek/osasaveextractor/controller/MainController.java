@@ -2,6 +2,7 @@ package fr.osallek.osasaveextractor.controller;
 
 import fr.osallek.osasaveextractor.common.Constants;
 import fr.osallek.osasaveextractor.config.ApplicationProperties;
+import fr.osallek.osasaveextractor.config.StageInitializer;
 import fr.osallek.osasaveextractor.controller.object.AutoCompleteTextField;
 import fr.osallek.osasaveextractor.controller.object.BootstrapColumn;
 import fr.osallek.osasaveextractor.controller.object.BootstrapPane;
@@ -40,6 +41,8 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.core5.http.ParseException;
 import org.kordamp.bootstrapfx.scene.layout.Panel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
@@ -55,6 +58,8 @@ import java.util.stream.Collectors;
 
 @Component
 public class MainController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MainController.class);
 
     private final Eu4Service eu4Service;
 
@@ -312,6 +317,7 @@ public class MainController {
                                    this.finishedButton.setVisible(true);
                                } else {
                                    this.errorText.setVisible(true);
+                                   LOGGER.error(throwable.getMessage(), throwable);
                                }
                            })
                            .thenAccept(unused -> {

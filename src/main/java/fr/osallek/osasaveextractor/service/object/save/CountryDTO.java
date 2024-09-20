@@ -4,6 +4,7 @@ import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.common.NumbersUtils;
 import fr.osallek.eu4parser.model.game.Culture;
 import fr.osallek.eu4parser.model.game.Mission;
+import fr.osallek.eu4parser.model.save.Id;
 import fr.osallek.eu4parser.model.save.Save;
 import fr.osallek.eu4parser.model.save.country.Expense;
 import fr.osallek.eu4parser.model.save.country.Income;
@@ -14,6 +15,7 @@ import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.eu4parser.model.save.diplomacy.DatableRelation;
 import fr.osallek.eu4parser.model.save.diplomacy.Diplomacy;
 import fr.osallek.eu4parser.model.save.diplomacy.Subsidies;
+import fr.osallek.eu4parser.model.save.province.SaveAdvisor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -223,7 +225,7 @@ public class CountryDTO extends ImageLocalised {
         this.loans = country.getLoans().stream().map(LoanDTO::new).toList();
         this.ideaGroups = country.getIdeaGroups().getIdeaGroupsNames();
         this.government = country.getGovernment() == null ? null : new GovernmentDTO(country.getGovernment());
-        this.advisors = country.getActiveAdvisors().keySet().stream().toList();
+        this.advisors = country.getActiveAdvisors().stream().map(SaveAdvisor::getId).map(Id::getId).toList();
         this.admPowerSpent = country.getAdmPowerSpent() == null ? null : country.getAdmPowerSpent().getPowerSpent();
         this.dipPowerSpent = country.getDipPowerSpent() == null ? null : country.getDipPowerSpent().getPowerSpent();
         this.milPowerSpent = country.getMilPowerSpent() == null ? null : country.getMilPowerSpent().getPowerSpent();
@@ -356,7 +358,6 @@ public class CountryDTO extends ImageLocalised {
                                 .map(Map::entrySet)
                                 .flatMap(Collection::stream)
                                 .map(Map.Entry::getKey)
-                                .map(SaveCountry::getTag)
                                 .distinct()
                                 .toList();
 
