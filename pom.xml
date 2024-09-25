@@ -18,7 +18,7 @@
 	<properties>
 		<java.version>21</java.version>
 
-		<eu4-parser.version>1.2.0</eu4-parser.version>
+		<eu4-parser.version>1.2.1</eu4-parser.version>
 		<javafx.version>21.0.4</javafx.version>
 		<bootstrapfx-core.version>0.4.0</bootstrapfx-core.version>
 		<maven-artifact.version>3.9.9</maven-artifact.version>
