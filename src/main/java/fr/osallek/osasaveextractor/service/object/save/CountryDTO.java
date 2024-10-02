@@ -329,15 +329,15 @@ public class CountryDTO extends ImageLocalised {
                                               .toList();
         this.warReparations = diplomacy.getWarReparations()
                                        .stream()
-                                       .filter(r -> r.getFirst().getTag().equals(this.tag))
-                                       .map(DatableRelation::getSecond)
+                                       .filter(r -> r.getSecond().getTag().equals(this.tag))
+                                       .map(DatableRelation::getFirst)
                                        .map(SaveCountry::getTag)
                                        .toList();
         this.warReparationsBy = diplomacy.getWarReparations()
                                          .stream()
-                                         .filter(r -> r.getSecond().getTag().equals(this.tag))
+                                         .filter(r -> r.getFirst().getTag().equals(this.tag))
                                          .findFirst()
-                                         .map(DatableRelation::getFirst)
+                                         .map(DatableRelation::getSecond)
                                          .map(SaveCountry::getTag)
                                          .orElse(null);
         this.warnings = diplomacy.getWarnings()
