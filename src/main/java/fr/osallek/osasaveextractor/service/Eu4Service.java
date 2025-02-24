@@ -155,7 +155,7 @@ public class Eu4Service {
         this.state = new ProgressState(ProgressStep.NONE, this.messageSource, Constants.LOCALE);
         Path tmpFolder = Path.of(FileUtils.getTempDirectoryPath(), UUID.randomUUID().toString());
 
-        return this.executor.submitListenable(() -> {
+        return this.executor.submitCompletable(() -> {
             try {
                 this.state.setStep(ProgressStep.PARSING_GAME);
                 AtomicInteger count = new AtomicInteger(0);
@@ -274,18 +274,18 @@ public class Eu4Service {
                 BufferedImage tradeGoodsImage = ImageReader.convertFileToImage(save.getGame().getResourcesImage());
                 save.getGame().getTradeGoods().stream().collect(Collectors.groupingBy(TradeGood::getIndex)).entrySet().parallelStream().forEach(entry -> {
                     try {
-                        BufferedImage tradeGoodImage = entry.getValue().get(0).getSubImage(tradeGoodsImage);
-                        Path dest = goodsTmpFolder.resolve(entry.getValue().get(0).getName() + ".png");
+                        BufferedImage tradeGoodImage = entry.getValue().getFirst().getSubImage(tradeGoodsImage);
+                        Path dest = goodsTmpFolder.resolve(entry.getValue().getFirst().getName() + ".png");
                         ImageIO.write(tradeGoodImage, "png", dest.toFile());
                         Eu4Utils.optimizePng(dest, dest);
-                        entry.getValue().get(0).setWritenTo(dest);
+                        entry.getValue().getFirst().setWritenTo(dest);
 
-                        Optional<String> tradeGoodChecksum = Constants.getFileChecksum(entry.getValue().get(0).getWritenTo());
+                        Optional<String> tradeGoodChecksum = Constants.getFileChecksum(entry.getValue().getFirst().getWritenTo());
                         if (tradeGoodChecksum.isPresent()) {
                             entry.getValue().forEach(tradeGood -> tradeGood.setWritenTo(dest.resolveSibling(tradeGoodChecksum.get() + ".png")));
-                            FileUtils.moveFile(dest.toFile(), entry.getValue().get(0).getWritenTo().toFile());
+                            FileUtils.moveFile(dest.toFile(), entry.getValue().getFirst().getWritenTo().toFile());
                         } else {
-                            LOGGER.warn("Could not get hash for trade good {}", entry.getValue().get(0).getName());
+                            LOGGER.warn("Could not get hash for trade good {}", entry.getValue().getFirst().getName());
                         }
                     } catch (Exception e) {
                         LOGGER.warn(e.getMessage(), e);
@@ -478,7 +478,7 @@ public class Eu4Service {
             } finally {
                 FileUtils.deleteQuietly(tmpFolder.toFile());
             }
-        }).completable().thenCompose(unused -> unused);
+        }).thenCompose(unused -> unused);
     }
 
     private CompletableFuture<Boolean> sendMissingAssets(AssetsDTO assets, Path tmpFolder, Save save, Path provinceMapFile,

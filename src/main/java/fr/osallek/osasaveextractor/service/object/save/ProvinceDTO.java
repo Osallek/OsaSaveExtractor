@@ -127,6 +127,14 @@ public class ProvinceDTO extends SimpleProvinceDTO {
 
                             h.getBuildings().putAll(toAdd);
                         }); //Force remove old building when upgrading
+
+            if (StringUtils.isNotBlank(province.getOwnerTag()) &&
+                !isOwnerAt(province.getSave().getDate(), ClausewitzUtils.removeQuotes(province.getOwnerTag()))) {
+                //Save manually edited or the game do some nasty things
+                this.history.reversed().stream().filter(p -> StringUtils.isNotBlank(p.getOwner())).findFirst().ifPresent(previous -> {
+                    addOwner(previous.getDate().plusDays(1), ClausewitzUtils.removeQuotes(province.getOwnerTag()));
+                });
+            }
         }
 
         this.losses = Stream.concat(Optional.ofNullable(province.getSave().getActiveWars()).stream().flatMap(Collection::stream),
