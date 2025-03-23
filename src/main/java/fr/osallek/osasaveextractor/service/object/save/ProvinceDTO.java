@@ -4,11 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.common.Eu4Utils;
 import fr.osallek.eu4parser.common.NumbersUtils;
+import fr.osallek.eu4parser.model.game.Battle;
 import fr.osallek.eu4parser.model.game.Building;
 import fr.osallek.eu4parser.model.save.province.ProvinceBuilding;
 import fr.osallek.eu4parser.model.save.province.SaveProvince;
-import fr.osallek.eu4parser.model.save.war.ActiveWar;
-import fr.osallek.eu4parser.model.game.Battle;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -16,18 +15,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.SortedMap;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 
 public class ProvinceDTO extends SimpleProvinceDTO {
 
@@ -55,11 +48,11 @@ public class ProvinceDTO extends SimpleProvinceDTO {
 
     private final List<ProvinceHistoryDTO> history = new ArrayList<>();
 
-    private final List<ProvinceLossesDTO> losses;
+    private final List<ProvinceLossesDTO> losses = new ArrayList<>();
 
     private final List<GreatProjectDTO> greatProjects = new ArrayList<>();
 
-    public ProvinceDTO(SaveProvince province) {
+    public ProvinceDTO(SaveProvince province, Map<LocalDate, List<Battle>> battles) {
         super(province);
         this.baseManpower = province.getBaseManpower();
         this.baseProduction = province.getBaseProduction();
@@ -92,7 +85,7 @@ public class ProvinceDTO extends SimpleProvinceDTO {
                 }
             }
 
-            for (int i = 0; i < this.history.size(); i++) { //Force remove buildings if empty owner (native american moved province)
+            for (int i = 0; i < this.history.size(); i++) { //Force remove buildings if an empty owner (native american moved province)
                 ProvinceHistoryDTO h = this.history.get(i);
                 if (Eu4Utils.DEFAULT_TAG.equals(h.getOwner())) {
                     h.getBuildings().clear();
@@ -137,26 +130,17 @@ public class ProvinceDTO extends SimpleProvinceDTO {
             }
         }
 
-        this.losses = Stream.concat(Optional.ofNullable(province.getSave().getActiveWars()).stream().flatMap(Collection::stream),
-                                    Optional.ofNullable(province.getSave().getPreviousWars()).stream().flatMap(Collection::stream))
-                            .map(ActiveWar::getBattles)
-                            .filter(MapUtils::isNotEmpty)
-                            .map(SortedMap::values)
-                            .filter(CollectionUtils::isNotEmpty)
-                            .flatMap(Collection::stream)
-                            .filter(CollectionUtils::isNotEmpty)
-                            .flatMap(Collection::stream)
-                            .filter(battle -> this.getId() == battle.getLocation())
-                            .collect(Collectors.groupingBy(Battle::getDate))
-                            .entrySet()
-                            .stream()
-                            .map(e -> new ProvinceLossesDTO(e.getKey(), e.getValue()
-                                                                         .stream()
-                                                                         .mapToLong(battle -> NumbersUtils.intOrDefault(battle.getAttacker().getLosses())
-                                                                                              + NumbersUtils.intOrDefault(battle.getDefender().getLosses()))
-                                                                         .sum()))
-                            .sorted(Comparator.comparing(ProvinceLossesDTO::getDate))
-                            .toList();
+        for (Map.Entry<LocalDate, List<Battle>> entry : battles.entrySet()) {
+            long total = 0L;
+
+            for (Battle battle : entry.getValue()) {
+                if (this.id == battle.getLocation()) {
+                    total += NumbersUtils.intOrDefault(battle.getAttacker().getLosses()) + NumbersUtils.intOrDefault(battle.getDefender().getLosses());
+                }
+            }
+
+            this.losses.add(new ProvinceLossesDTO(entry.getKey(), total));
+        }
 
         if (CollectionUtils.isNotEmpty(province.getGreatProjects())) {
             province.getGreatProjects()

@@ -352,9 +352,9 @@ public class Eu4Service {
                                 LOGGER.warn("Could not get hash for estate {}", entry.getValue().get(0).getName());
                             }
                         } catch (Exception e) {
-                        LOGGER.warn(e.getMessage(), e);
-                    }
-                });
+                            LOGGER.warn(e.getMessage(), e);
+                        }
+                    });
 
                 Path flagsFolder = tmpFolder.resolve("flags");
                 FileUtils.forceMkdir(flagsFolder.toFile());
@@ -390,12 +390,24 @@ public class Eu4Service {
                     });
 
                 SaveDTO saveDTO = new SaveDTO(userId, name, previousSave, save, hideAll, provinceChecksum.get(), religionsMap,
-                                              value -> {
-                                                  this.state.setSubStep(ProgressStep.GENERATING_DATA_COUNTRIES);
-                                                  int progress = ProgressStep.GENERATING_DATA_COUNTRIES.progress;
-                                                  progress += (ProgressStep.GENERATING_DATA_COUNTRIES.next().progress
-                                                               - ProgressStep.GENERATING_DATA_COUNTRIES.progress) * value;
+                                              (value, total) -> {
+                                                  int progress = (int) (ProgressStep.GENERATING_DATA_COUNTRIES.progress +
+                                                                        ((ProgressStep.GENERATING_DATA_COUNTRIES.next().progress
+                                                                          - ProgressStep.GENERATING_DATA_COUNTRIES.progress) * ((double) value / total)));
 
+                                                  this.state.setSubStep(ProgressStep.GENERATING_DATA_COUNTRIES);
+                                                  this.state.setArg0(value);
+                                                  this.state.setArg1(total);
+                                                  this.state.setProgress(progress);
+                                              },
+                                              (value, total) -> {
+                                                  int progress = (int) (ProgressStep.GENERATING_DATA_PROVINCES.progress +
+                                                                        ((ProgressStep.GENERATING_DATA_PROVINCES.next().progress
+                                                                          - ProgressStep.GENERATING_DATA_PROVINCES.progress) * ((double) value
+                                                                                                                                / total)));
+                                                  this.state.setSubStep(ProgressStep.GENERATING_DATA_PROVINCES);
+                                                  this.state.setArg0(value);
+                                                  this.state.setArg1(total);
                                                   this.state.setProgress(progress);
                                               });
 

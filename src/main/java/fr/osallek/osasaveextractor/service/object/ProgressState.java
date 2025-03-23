@@ -11,6 +11,11 @@ import javafx.beans.property.StringProperty;
 import org.springframework.context.MessageSource;
 
 import java.util.Locale;
+import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class ProgressState {
 
@@ -30,6 +35,10 @@ public class ProgressState {
 
     private final StringProperty label;
 
+    private final IntegerProperty[] args;
+
+    private final ScheduledThreadPoolExecutor scheduledExecutor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
+
     public ProgressState(ProgressStep step, MessageSource messageSource, Locale locale) {
         this.messageSource = messageSource;
         this.locale = locale;
@@ -39,10 +48,16 @@ public class ProgressState {
         this.link = new SimpleStringProperty(null);
         this.error = new SimpleBooleanProperty(false);
         this.label = new SimpleStringProperty();
+        this.args = new IntegerProperty[] {new SimpleIntegerProperty(0), new SimpleIntegerProperty(1)};
+        this.scheduledExecutor.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
 
         this.step.addListener((observable, oldValue, newValue) -> {
             this.progress.set(newValue.progress);
             computeLabel();
+
+            if (ProgressStep.FINISHED == newValue) {
+                this.scheduledExecutor.close();
+            }
         });
         this.subStep.addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
@@ -50,44 +65,34 @@ public class ProgressState {
             }
             computeLabel();
         });
+
+        this.scheduledExecutor.scheduleAtFixedRate(this::computeLabel, 75, 75, TimeUnit.MILLISECONDS);
     }
 
-    private void computeLabel() {
-        String s = this.messageSource.getMessage("ose.progress." + this.step.get(), null, this.locale);
+    private synchronized void computeLabel() {
+        String s = this.messageSource.getMessage("ose.progress." + this.step.get(), new Object[] {this.args[0].get(), this.args[1].get()}, this.locale);
 
         if (this.subStep.get() != null) {
-            s += " (" + this.messageSource.getMessage("ose.progress." + this.subStep.get(), null, this.locale) + ")";
+            s += " (" + this.messageSource.getMessage("ose.progress." + this.subStep.get(), new Object[] {this.args[0].get(), this.args[1].get()}, this.locale) + ")";
         }
 
         this.label.set(s);
     }
 
-    public ProgressStep getStep() {
-        return step.get();
-    }
-
-    public ObjectProperty<ProgressStep> stepProperty() {
-        return step;
-    }
-
     public void setStep(ProgressStep step) {
-        this.step.set(step);
-    }
-
-    public ProgressStep getSubStep() {
-        return subStep.get();
-    }
-
-    public ObjectProperty<ProgressStep> subStepProperty() {
-        return subStep;
+        if (!Objects.equals(this.step.get(), step)) {
+            this.step.set(step);
+            this.args[0].set(0);
+            this.args[1].set(0);
+        }
     }
 
     public void setSubStep(ProgressStep subStep) {
-        this.subStep.set(subStep);
-    }
-
-    public int getProgress() {
-        return progress.get();
+        if (!Objects.equals(this.subStep.get(), subStep)) {
+            this.subStep.set(subStep);
+            this.args[0].set(0);
+            this.args[1].set(0);
+        }
     }
 
     public IntegerProperty progressProperty() {
@@ -102,10 +107,6 @@ public class ProgressState {
         return link.get();
     }
 
-    public StringProperty linkProperty() {
-        return link;
-    }
-
     public void setLink(String link) {
         this.link.set(link);
     }
@@ -114,23 +115,19 @@ public class ProgressState {
         return error.get();
     }
 
-    public BooleanProperty errorProperty() {
-        return error;
-    }
-
     public void setError(boolean error) {
         this.error.set(error);
-    }
-
-    public String getLabel() {
-        return label.get();
     }
 
     public StringProperty labelProperty() {
         return label;
     }
 
-    public void setLabel(String label) {
-        this.label.set(label);
+    public void setArg0(Integer args) {
+        this.args[0].set(args);
+    }
+
+    public void setArg1(Integer args) {
+        this.args[1].set(args);
     }
 }

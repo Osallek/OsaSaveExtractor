@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -95,11 +96,11 @@ public class CountryDTO extends ImageLocalised {
 
     private final SortedMap<Integer, Integer> inflationStatistics;
 
-    private final List<String> alliances;
+    private final SortedSet<String> alliances;
 
-    private final List<String> guarantees;
+    private final SortedSet<String> guarantees;
 
-    private final List<String> guarantedBy;
+    private final SortedSet<String> guarantedBy;
 
     private final String knowledgeSharing;
 
@@ -109,25 +110,25 @@ public class CountryDTO extends ImageLocalised {
 
     private final Map<String, Double> subsidiesBy;
 
-    private final List<String> royalMarriages;
+    private final SortedSet<String> royalMarriages;
 
-    private final List<String> supportIndependence;
+    private final SortedSet<String> supportIndependence;
 
-    private final List<String> supportIndependenceBy;
+    private final SortedSet<String> supportIndependenceBy;
 
-    private final List<String> transferTradePowers;
+    private final SortedSet<String> transferTradePowers;
 
-    private final List<String> transferTradePowersBy;
+    private final SortedSet<String> transferTradePowersBy;
 
-    private final List<String> warReparations;
+    private final SortedSet<String> warReparations;
 
-    private final List<String> atWarWith;
+    private final SortedSet<String> atWarWith;
 
     private final String warReparationsBy;
 
-    private final List<String> warnings;
+    private final SortedSet<String> warnings;
 
-    private final List<String> warningsBy;
+    private final SortedSet<String> warningsBy;
 
     private final Double income;
 
@@ -250,7 +251,7 @@ public class CountryDTO extends ImageLocalised {
                                   .filter(r -> r.getFirst().getTag().equals(this.tag))
                                   .map(DatableRelation::getSecond)
                                   .map(SaveCountry::getTag)
-                                  .collect(Collectors.toList());
+                                  .collect(Collectors.toCollection(TreeSet::new));
         this.alliances.addAll(diplomacy.getAlliances()
                                        .stream()
                                        .filter(r -> r.getSecond().getTag().equals(this.tag))
@@ -262,13 +263,13 @@ public class CountryDTO extends ImageLocalised {
                                    .filter(r -> r.getFirst().getTag().equals(this.tag))
                                    .map(DatableRelation::getSecond)
                                    .map(SaveCountry::getTag)
-                                   .toList();
+                                   .collect(Collectors.toCollection(TreeSet::new));
         this.guarantedBy = diplomacy.getGuarantees()
                                     .stream()
                                     .filter(r -> r.getSecond().getTag().equals(this.tag))
                                     .map(DatableRelation::getFirst)
                                     .map(SaveCountry::getTag)
-                                    .toList();
+                                    .collect(Collectors.toCollection(TreeSet::new));
         this.knowledgeSharing = diplomacy.getKnowledgeSharing()
                                          .stream()
                                          .filter(r -> r.getFirst().getTag().equals(this.tag))
@@ -296,7 +297,7 @@ public class CountryDTO extends ImageLocalised {
                                        .filter(r -> r.getFirst().getTag().equals(this.tag))
                                        .map(DatableRelation::getSecond)
                                        .map(SaveCountry::getTag)
-                                       .collect(Collectors.toList());
+                                       .collect(Collectors.toCollection(TreeSet::new));
         this.royalMarriages.addAll(diplomacy.getRoyalMarriage()
                                             .stream()
                                             .filter(r -> r.getSecond().getTag().equals(this.tag))
@@ -308,31 +309,31 @@ public class CountryDTO extends ImageLocalised {
                                             .filter(r -> r.getFirst().getTag().equals(this.tag))
                                             .map(DatableRelation::getSecond)
                                             .map(SaveCountry::getTag)
-                                            .toList();
+                                            .collect(Collectors.toCollection(TreeSet::new));
         this.supportIndependenceBy = diplomacy.getSupportIndependence()
                                               .stream()
                                               .filter(r -> r.getSecond().getTag().equals(this.tag))
                                               .map(DatableRelation::getFirst)
                                               .map(SaveCountry::getTag)
-                                              .toList();
+                                              .collect(Collectors.toCollection(TreeSet::new));
         this.transferTradePowers = diplomacy.getTransferTradePowers()
                                             .stream()
                                             .filter(r -> r.getFirst().getTag().equals(this.tag))
                                             .map(DatableRelation::getSecond)
                                             .map(SaveCountry::getTag)
-                                            .toList();
+                                            .collect(Collectors.toCollection(TreeSet::new));
         this.transferTradePowersBy = diplomacy.getTransferTradePowers()
                                               .stream()
                                               .filter(r -> r.getSecond().getTag().equals(this.tag))
                                               .map(DatableRelation::getFirst)
                                               .map(SaveCountry::getTag)
-                                              .toList();
+                                              .collect(Collectors.toCollection(TreeSet::new));
         this.warReparations = diplomacy.getWarReparations()
                                        .stream()
                                        .filter(r -> r.getSecond().getTag().equals(this.tag))
                                        .map(DatableRelation::getFirst)
                                        .map(SaveCountry::getTag)
-                                       .toList();
+                                       .collect(Collectors.toCollection(TreeSet::new));
         this.warReparationsBy = diplomacy.getWarReparations()
                                          .stream()
                                          .filter(r -> r.getFirst().getTag().equals(this.tag))
@@ -345,21 +346,20 @@ public class CountryDTO extends ImageLocalised {
                                  .filter(r -> r.getFirst().getTag().equals(this.tag))
                                  .map(DatableRelation::getSecond)
                                  .map(SaveCountry::getTag)
-                                 .toList();
+                                 .collect(Collectors.toCollection(TreeSet::new));
         this.warningsBy = diplomacy.getWarnings()
                                    .stream()
                                    .filter(r -> r.getSecond().getTag().equals(this.tag))
                                    .map(DatableRelation::getFirst)
                                    .map(SaveCountry::getTag)
-                                   .toList();
+                                   .collect(Collectors.toCollection(TreeSet::new));
         this.atWarWith = country.getActiveWars()
                                 .stream()
                                 .map(war -> war.getOtherSide(country))
                                 .map(Map::entrySet)
                                 .flatMap(Collection::stream)
                                 .map(Map.Entry::getKey)
-                                .distinct()
-                                .toList();
+                                .collect(Collectors.toCollection(TreeSet::new));
 
         this.prestige = country.getPrestige();
         this.income = country.getEstimatedMonthlyIncome();
@@ -609,15 +609,15 @@ public class CountryDTO extends ImageLocalised {
         return inflationStatistics;
     }
 
-    public List<String> getAlliances() {
+    public SortedSet<String> getAlliances() {
         return alliances;
     }
 
-    public List<String> getGuarantees() {
+    public SortedSet<String> getGuarantees() {
         return guarantees;
     }
 
-    public List<String> getGuarantedBy() {
+    public SortedSet<String> getGuarantedBy() {
         return guarantedBy;
     }
 
@@ -637,31 +637,31 @@ public class CountryDTO extends ImageLocalised {
         return subsidiesBy;
     }
 
-    public List<String> getRoyalMarriages() {
+    public SortedSet<String> getRoyalMarriages() {
         return royalMarriages;
     }
 
-    public List<String> getSupportIndependence() {
+    public SortedSet<String> getSupportIndependence() {
         return supportIndependence;
     }
 
-    public List<String> getSupportIndependenceBy() {
+    public SortedSet<String> getSupportIndependenceBy() {
         return supportIndependenceBy;
     }
 
-    public List<String> getTransferTradePowers() {
+    public SortedSet<String> getTransferTradePowers() {
         return transferTradePowers;
     }
 
-    public List<String> getTransferTradePowersBy() {
+    public SortedSet<String> getTransferTradePowersBy() {
         return transferTradePowersBy;
     }
 
-    public List<String> getWarReparations() {
+    public SortedSet<String> getWarReparations() {
         return warReparations;
     }
 
-    public List<String> getAtWarWith() {
+    public SortedSet<String> getAtWarWith() {
         return atWarWith;
     }
 
@@ -669,11 +669,11 @@ public class CountryDTO extends ImageLocalised {
         return warReparationsBy;
     }
 
-    public List<String> getWarnings() {
+    public SortedSet<String> getWarnings() {
         return warnings;
     }
 
-    public List<String> getWarningsBy() {
+    public SortedSet<String> getWarningsBy() {
         return warningsBy;
     }
 

@@ -2,10 +2,12 @@ package fr.osallek.osasaveextractor.service.object.save;
 
 import fr.osallek.clausewitzparser.common.ClausewitzUtils;
 import fr.osallek.eu4parser.common.NumbersUtils;
+import fr.osallek.eu4parser.model.game.Battle;
 import fr.osallek.eu4parser.model.game.Religion;
 import fr.osallek.eu4parser.model.save.Save;
 import fr.osallek.eu4parser.model.save.country.SaveCountry;
 import fr.osallek.eu4parser.model.save.province.SaveProvince;
+import fr.osallek.eu4parser.model.save.war.ActiveWar;
 import fr.osallek.osasaveextractor.common.Constants;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -21,10 +23,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.DoubleConsumer;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -104,7 +109,7 @@ public class SaveDTO {
     private final List<TradeNodeDTO> tradeNodes;
 
     public SaveDTO(String userId, String name, String previousSave, Save save, boolean hideAll, String provinceImage, Map<String, Religion> religions,
-                   DoubleConsumer percentCountriesConsumer) {
+                   BiConsumer<Integer, Integer> percentCountriesConsumer, BiConsumer<Integer, Integer> percentProvincesConsumer) {
         this.startDate = save.getStartDate();
         this.owner = userId;
         this.country = save.getPlayedCountry().getTag();
@@ -117,22 +122,35 @@ public class SaveDTO {
         this.nbProvinces = Collections.max(save.getGame().getProvinces().keySet()); //Get the greatest id
         this.teams = CollectionUtils.isNotEmpty(save.getTeams()) ? save.getTeams().stream().map(TeamDTO::new).toList() : null;
 
-        save.getProvinces().values().forEach(province -> {
+        Map<LocalDate, List<Battle>> battles = Stream.concat(Optional.ofNullable(save.getActiveWars()).stream().flatMap(Collection::stream),
+                                                             Optional.ofNullable(save.getPreviousWars())
+                                                                     .stream()
+                                                                     .flatMap(Collection::stream))
+                                                     .map(ActiveWar::getBattles)
+                                                     .filter(MapUtils::isNotEmpty)
+                                                     .map(SortedMap::values)
+                                                     .filter(CollectionUtils::isNotEmpty)
+                                                     .flatMap(Collection::stream)
+                                                     .filter(CollectionUtils::isNotEmpty)
+                                                     .flatMap(Collection::stream)
+                                                     .collect(Collectors.groupingBy(Battle::getDate, TreeMap::new, Collectors.toList()));
+
+        AtomicInteger i = new AtomicInteger();
+        save.getProvinces().values().parallelStream().forEach(province -> {
             if (province.isImpassable()) {
                 this.impassableProvinces.add(new SimpleProvinceDTO(province));
             } else if (province.isOcean()) {
                 this.oceansProvinces.add(new SimpleProvinceDTO(province));
             } else if (province.isLake()) {
                 this.lakesProvinces.add(new SimpleProvinceDTO(province));
-            } else if (province.getHistory() != null) {
-                this.provinces.add(new ProvinceDTO(province));
+            } else if (province.hasHistory()) {
+                this.provinces.add(new ProvinceDTO(province, battles));
             }
+
+            percentProvincesConsumer.accept(i.incrementAndGet(), save.getProvinces().size());
         });
 
-        this.areas = save.getAreas().values().stream().map(AreaDTO::new).toList();
-        this.advisors = save.getAdvisorsStream().map(AdvisorDTO::new).toList();
-
-        AtomicInteger i = new AtomicInteger();
+        i.set(0);
         List<SaveCountry> list = save.getCountries()
                                      .values()
                                      .stream()
@@ -141,11 +159,12 @@ public class SaveDTO {
                                      .filter(c -> c.getHistory() != null)
                                      .filter(c -> c.getHistory().hasEvents())
                                      .toList();
+        this.areas = save.getAreas().values().stream().map(AreaDTO::new).toList();
+        this.advisors = save.getAdvisorsStream().map(AdvisorDTO::new).toList();
         this.countries = list.parallelStream()
                              .map(c -> {
                                  CountryDTO countryDTO = new CountryDTO(save, c, save.getDiplomacy(), this.provinces);
-                                 i.getAndIncrement();
-                                 percentCountriesConsumer.accept((double) i.get() / list.size());
+                                 percentCountriesConsumer.accept(i.incrementAndGet(), list.size());
 
                                  return countryDTO;
                              })
