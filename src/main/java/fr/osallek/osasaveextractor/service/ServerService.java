@@ -1,5 +1,6 @@
 package fr.osallek.osasaveextractor.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.osallek.eu4parser.Eu4Parser;
 import fr.osallek.eu4parser.common.Eu4Utils;
@@ -16,6 +17,7 @@ import fr.osallek.osasaveextractor.service.object.server.UploadResponseDTO;
 import org.apache.commons.io.IOUtils;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.entity.GzipCompressingEntity;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.client5.http.impl.classic.BasicHttpClientResponseHandler;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -97,18 +99,25 @@ public class ServerService {
         HttpPost post = new HttpPost(this.properties.getServerUrl() + "/api/saves");
         post.setHeader("Accept", "application/json");
         post.setHeader("Content-type", "application/json");
-        post.setEntity(new ByteArrayEntity(this.objectMapper.writeValueAsBytes(save), ContentType.APPLICATION_JSON));
+        post.setEntity(new GzipCompressingEntity(new ByteArrayEntity(this.objectMapper.writeValueAsBytes(save), ContentType.APPLICATION_JSON)));
 
         return this.httpClient.execute(post, response -> {
             try {
                 String s = EntityUtils.toString(response.getEntity());
 
                 if (response.getCode() != 200) {
-                    return CompletableFuture.failedFuture(new ServerException(this.objectMapper.readValue(s, ErrorObject.class).getError()));
+                    try {
+                        LOGGER.error(s);
+                        return CompletableFuture.failedFuture(new ServerException(this.objectMapper.readValue(s, ErrorObject.class).getError()));
+                    } catch (JsonProcessingException e) {
+                        LOGGER.error("An error occurred while parsing server error: {}: {}", e.getMessage(), s);
+                        return CompletableFuture.failedFuture(new ServerException(ErrorCode.DEFAULT_ERROR));
+                    }
                 }
 
                 return CompletableFuture.completedFuture(this.objectMapper.readValue(s, UploadResponseDTO.class));
             } catch (Exception e) {
+                LOGGER.error(e.getMessage(), e);
                 return CompletableFuture.failedFuture(new ServerException(ErrorCode.DEFAULT_ERROR));
             }
         });
