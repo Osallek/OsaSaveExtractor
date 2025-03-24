@@ -28,6 +28,7 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import java.io.FileOutputStream;
@@ -55,9 +56,12 @@ public class ServerService {
 
     private final CloseableHttpClient httpClient = HttpClients.createDefault();
 
-    public ServerService(ApplicationProperties properties, ObjectMapper objectMapper) {
+    private final Environment environment;
+
+    public ServerService(ApplicationProperties properties, ObjectMapper objectMapper, Environment environment) {
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.environment = environment;
     }
 
     public boolean needUpdate() throws IOException {
@@ -99,7 +103,13 @@ public class ServerService {
         HttpPost post = new HttpPost(this.properties.getServerUrl() + "/api/saves");
         post.setHeader("Accept", "application/json");
         post.setHeader("Content-type", "application/json");
-        post.setEntity(new GzipCompressingEntity(new ByteArrayEntity(this.objectMapper.writeValueAsBytes(save), ContentType.APPLICATION_JSON)));
+
+        if (this.environment.matchesProfiles("dev")) {
+            post.setEntity(new ByteArrayEntity(this.objectMapper.writeValueAsBytes(save), ContentType.APPLICATION_JSON));
+
+        } else {
+            post.setEntity(new GzipCompressingEntity(new ByteArrayEntity(this.objectMapper.writeValueAsBytes(save), ContentType.APPLICATION_JSON)));
+        }
 
         return this.httpClient.execute(post, response -> {
             try {
