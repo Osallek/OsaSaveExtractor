@@ -139,7 +139,9 @@ public class ProvinceDTO extends SimpleProvinceDTO {
                 }
             }
 
-            this.losses.add(new ProvinceLossesDTO(entry.getKey(), total));
+            if (total != 0L) {
+                this.losses.add(new ProvinceLossesDTO(entry.getKey(), total));
+            }
         }
 
         if (CollectionUtils.isNotEmpty(province.getGreatProjects())) {
