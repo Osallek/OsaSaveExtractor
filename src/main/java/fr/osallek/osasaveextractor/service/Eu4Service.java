@@ -271,32 +271,44 @@ public class Eu4Service {
                 Path goodsTmpFolder = tmpFolder.resolve("goods");
                 FileUtils.forceMkdir(goodsTmpFolder.toFile());
 
-                BufferedImage tradeGoodsImage = ImageReader.convertFileToImage(save.getGame().getResourcesImage());
-                save.getGame().getTradeGoods().stream().collect(Collectors.groupingBy(TradeGood::getIndex)).entrySet().parallelStream().forEach(entry -> {
-                    try {
-                        BufferedImage tradeGoodImage = entry.getValue().getFirst().getSubImage(tradeGoodsImage);
-                        Path dest = goodsTmpFolder.resolve(entry.getValue().getFirst().getName() + ".png");
-                        ImageIO.write(tradeGoodImage, "png", dest.toFile());
-                        Eu4Utils.optimizePng(dest, dest);
-                        entry.getValue().getFirst().setWritenTo(dest);
+                try {
+                    BufferedImage tradeGoodsImage = ImageReader.convertFileToImage(save.getGame().getResourcesImage());
 
-                        Optional<String> tradeGoodChecksum = Constants.getFileChecksum(entry.getValue().getFirst().getWritenTo());
-                        if (tradeGoodChecksum.isPresent()) {
-                            entry.getValue().forEach(tradeGood -> tradeGood.setWritenTo(dest.resolveSibling(tradeGoodChecksum.get() + ".png")));
-                            FileUtils.moveFile(dest.toFile(), entry.getValue().getFirst().getWritenTo().toFile());
-                        } else {
-                            LOGGER.warn("Could not get hash for trade good {}", entry.getValue().getFirst().getName());
+                    save.getGame().getTradeGoods().stream().collect(Collectors.groupingBy(TradeGood::getIndex)).entrySet().parallelStream().forEach(entry -> {
+                        try {
+                            BufferedImage tradeGoodImage = entry.getValue().getFirst().getSubImage(tradeGoodsImage);
+                            Path dest = goodsTmpFolder.resolve(entry.getValue().getFirst().getName() + ".png");
+                            ImageIO.write(tradeGoodImage, "png", dest.toFile());
+                            Eu4Utils.optimizePng(dest, dest);
+                            entry.getValue().getFirst().setWritenTo(dest);
+
+                            Optional<String> tradeGoodChecksum = Constants.getFileChecksum(entry.getValue().getFirst().getWritenTo());
+                            if (tradeGoodChecksum.isPresent()) {
+                                entry.getValue().forEach(tradeGood -> tradeGood.setWritenTo(dest.resolveSibling(tradeGoodChecksum.get() + ".png")));
+                                FileUtils.moveFile(dest.toFile(), entry.getValue().getFirst().getWritenTo().toFile());
+                            } else {
+                                LOGGER.warn("Could not get hash for trade good {}", entry.getValue().getFirst().getName());
+                            }
+                        } catch (Exception e) {
+                            LOGGER.warn(e.getMessage(), e);
                         }
-                    } catch (Exception e) {
-                        LOGGER.warn(e.getMessage(), e);
-                    }
-                });
+                    });
+                } catch (Exception e) {
+                    LOGGER.warn("An error occurred while parsing goods images", e);
+                }
 
                 Path religionsTmpFolder = tmpFolder.resolve("religions");
                 FileUtils.forceMkdir(religionsTmpFolder.toFile());
                 Map<String, Religion> religionsMap = new HashMap<>();
 
-                BufferedImage religionsImage = ImageReader.convertFileToImage(save.getGame().getReligionsImage());
+                BufferedImage religionsImage = null;
+                try {
+                    religionsImage = ImageReader.convertFileToImage(save.getGame().getReligionsImage());
+                } catch (Exception e) {
+                    LOGGER.warn("An error occurred while parsing religions images", e);
+                }
+
+                BufferedImage finalReligionsImage = religionsImage;
                 save.getGame()
                     .getReligions()
                     .stream()
@@ -307,54 +319,63 @@ public class Eu4Service {
                     .forEach(entry -> {
                         try {
                             entry.getValue().forEach(religion -> religionsMap.put(religion.getName(), religion));
-                            BufferedImage religionImage = entry.getValue().get(0).getSubImage(religionsImage);
-                            Path dest = religionsTmpFolder.resolve(entry.getValue().get(0).getName() + ".png");
+
+                            if (finalReligionsImage == null) {
+                                return;
+                            }
+
+                            BufferedImage religionImage = entry.getValue().getFirst().getSubImage(finalReligionsImage);
+                            Path dest = religionsTmpFolder.resolve(entry.getValue().getFirst().getName() + ".png");
                             ImageIO.write(religionImage, "png", dest.toFile());
                             Eu4Utils.optimizePng(dest, dest);
-                            entry.getValue().get(0).setWritenTo(dest);
+                            entry.getValue().getFirst().setWritenTo(dest);
 
-                            Optional<String> religionChecksum = Constants.getFileChecksum(entry.getValue().get(0).getWritenTo());
+                            Optional<String> religionChecksum = Constants.getFileChecksum(entry.getValue().getFirst().getWritenTo());
                             if (religionChecksum.isPresent()) {
                                 entry.getValue().forEach(religion -> religion.setWritenTo(dest.resolveSibling(religionChecksum.get() + ".png")));
-                                FileUtils.moveFile(dest.toFile(), entry.getValue().get(0).getWritenTo().toFile());
+                                FileUtils.moveFile(dest.toFile(), entry.getValue().getFirst().getWritenTo().toFile());
                             } else {
-                                LOGGER.warn("Could not get hash for religion {}", entry.getValue().get(0).getName());
+                                LOGGER.warn("Could not get hash for religion {}", entry.getValue().getFirst().getName());
                             }
                         } catch (Exception e) {
-                            LOGGER.warn(e.getMessage(), e);
+                            LOGGER.warn("An error occurred while parsing religion image", e);
                         }
                     });
 
                 Path estatesTmpFolder = tmpFolder.resolve("estates");
                 FileUtils.forceMkdir(estatesTmpFolder.toFile());
 
-                BufferedImage estatesImage = ImageReader.convertFileToImage(save.getGame().getEstatesImage());
-                save.getGame()
-                    .getEstates()
-                    .stream()
-                    .filter(e -> e.getIcon() != null)
-                    .collect(Collectors.groupingBy(Estate::getIcon))
-                    .entrySet()
-                    .parallelStream()
-                    .forEach(entry -> {
-                        try {
-                            BufferedImage estateImage = entry.getValue().get(0).getSubImage(estatesImage);
-                            Path dest = estatesTmpFolder.resolve(entry.getValue().get(0).getName() + ".png");
-                            ImageIO.write(estateImage, "png", dest.toFile());
-                            Eu4Utils.optimizePng(dest, dest);
-                            entry.getValue().get(0).setWritenTo(dest);
+                try {
+                    BufferedImage estatesImage = ImageReader.convertFileToImage(save.getGame().getEstatesImage());
+                    save.getGame()
+                        .getEstates()
+                        .stream()
+                        .filter(e -> e.getIcon() != null)
+                        .collect(Collectors.groupingBy(Estate::getIcon))
+                        .entrySet()
+                        .parallelStream()
+                        .forEach(entry -> {
+                            try {
+                                BufferedImage estateImage = entry.getValue().getFirst().getSubImage(estatesImage);
+                                Path dest = estatesTmpFolder.resolve(entry.getValue().getFirst().getName() + ".png");
+                                ImageIO.write(estateImage, "png", dest.toFile());
+                                Eu4Utils.optimizePng(dest, dest);
+                                entry.getValue().getFirst().setWritenTo(dest);
 
-                            Optional<String> estateChecksum = Constants.getFileChecksum(entry.getValue().get(0).getWritenTo());
-                            if (estateChecksum.isPresent()) {
-                                entry.getValue().forEach(estate -> estate.setWritenTo(dest.resolveSibling(estateChecksum.get() + ".png")));
-                                FileUtils.moveFile(dest.toFile(), entry.getValue().get(0).getWritenTo().toFile());
-                            } else {
-                                LOGGER.warn("Could not get hash for estate {}", entry.getValue().get(0).getName());
+                                Optional<String> estateChecksum = Constants.getFileChecksum(entry.getValue().getFirst().getWritenTo());
+                                if (estateChecksum.isPresent()) {
+                                    entry.getValue().forEach(estate -> estate.setWritenTo(dest.resolveSibling(estateChecksum.get() + ".png")));
+                                    FileUtils.moveFile(dest.toFile(), entry.getValue().getFirst().getWritenTo().toFile());
+                                } else {
+                                    LOGGER.warn("Could not get hash for estate {}", entry.getValue().getFirst().getName());
+                                }
+                            } catch (Exception e) {
+                                LOGGER.warn("An error occurred while parsing estate image", e);
                             }
-                        } catch (Exception e) {
-                            LOGGER.warn(e.getMessage(), e);
-                        }
-                    });
+                        });
+                } catch (Exception e) {
+                    LOGGER.warn("An error occurred while parsing estates images", e);
+                }
 
                 Path flagsFolder = tmpFolder.resolve("flags");
                 FileUtils.forceMkdir(flagsFolder.toFile());
