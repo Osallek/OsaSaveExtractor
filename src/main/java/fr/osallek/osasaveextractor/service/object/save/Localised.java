@@ -7,9 +7,12 @@ import org.apache.commons.collections4.MapUtils;
 
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class Localised {
+
+    private static final Pattern ICONS_PATTERN = Pattern.compile("£.*?£");
 
     protected Map<Eu4Language, String> localisations;
 
@@ -18,7 +21,9 @@ public class Localised {
 
     public Localised(Map<Eu4Language, Localisation> localisations) {
         if (MapUtils.isNotEmpty(localisations)) {
-            this.localisations = localisations.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getValue()));
+            this.localisations = localisations.entrySet()
+                                              .stream()
+                                              .collect(Collectors.toMap(Map.Entry::getKey, e -> ICONS_PATTERN.matcher(e.getValue().getValue()).replaceAll("")));
         }
     }
 
