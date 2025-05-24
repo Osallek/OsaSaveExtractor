@@ -221,11 +221,10 @@ public class SaveDTO {
         this.institutions = save.getGame()
                                 .getInstitutions()
                                 .stream()
-                                .filter(institution -> save.getInstitutions().isAvailable(institution))
                                 .map(institution -> {
-                                    SaveProvince origin = save.getInstitutions().getOrigin(institution);
-                                    return origin != null ? new InstitutionDTO(save, institution, save.getInstitutions().getOrigin(institution).getId())
-                                                          : new InstitutionDTO(save, institution, 0);
+                                    SaveProvince origin = save.getInstitutions().isAvailable(institution) ? save.getInstitutions().getOrigin(institution) : null;
+                                    return origin != null ? new InstitutionDTO(save, institution, origin.getId())
+                                                          : new InstitutionDTO(save, institution, null);
                                 })
                                 .toList();
         this.diplomacy = new DiplomacyDTO(save, list);
