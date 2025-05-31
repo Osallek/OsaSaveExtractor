@@ -165,7 +165,7 @@ public class SaveDTO {
                                      .filter(c -> c.getHistory() != null)
                                      .filter(c -> c.getHistory().hasEvents())
                                      .toList();
-        this.areas = save.getAreas().values().stream().map(a -> new AreaDTO(save, a)).toList();
+        this.areas = save.getGame().getAreas().stream().filter(a -> CollectionUtils.isNotEmpty(a.getProvinces())).map(a -> new AreaDTO(save, a)).toList();
         this.regions = save.getGame().getRegions().stream().filter(r -> CollectionUtils.isNotEmpty(r.getAreas())).map(r -> new RegionDTO(save, r)).toList();
         this.superRegions = save.getGame()
                                 .getSuperRegions()
