@@ -72,6 +72,12 @@ public class SaveDTO {
 
     private final List<AreaDTO> areas;
 
+    private final List<RegionDTO> regions;
+
+    private final List<SuperRegionDTO> superRegions;
+
+    private final List<ProvinceListDTO> continents;
+
     private final List<AdvisorDTO> advisors;
 
     private final List<CultureDTO> cultures;
@@ -113,7 +119,7 @@ public class SaveDTO {
         this.startDate = save.getStartDate();
         this.owner = userId;
         this.country = save.getPlayedCountry().getTag();
-        this.version = ClausewitzUtils.removeQuotes(save.getSavegameVersions().get(save.getSavegameVersions().size() - 1));
+        this.version = ClausewitzUtils.removeQuotes(save.getSavegameVersions().getLast());
         this.previousSave = previousSave;
         this.hideAll = hideAll;
         this.provinceImage = provinceImage;
@@ -159,7 +165,20 @@ public class SaveDTO {
                                      .filter(c -> c.getHistory() != null)
                                      .filter(c -> c.getHistory().hasEvents())
                                      .toList();
-        this.areas = save.getAreas().values().stream().map(AreaDTO::new).toList();
+        this.areas = save.getAreas().values().stream().map(a -> new AreaDTO(save, a)).toList();
+        this.regions = save.getGame().getRegions().stream().filter(r -> CollectionUtils.isNotEmpty(r.getAreas())).map(r -> new RegionDTO(save, r)).toList();
+        this.superRegions = save.getGame()
+                                .getSuperRegions()
+                                .stream()
+                                .filter(r -> CollectionUtils.isNotEmpty(r.getRegions()))
+                                .map(sr -> new SuperRegionDTO(save, sr))
+                                .toList();
+        this.continents = save.getGame()
+                              .getContinents()
+                              .stream()
+                              .filter(r -> CollectionUtils.isNotEmpty(r.getProvinces()))
+                              .map(c -> new ProvinceListDTO(save, c))
+                              .toList();
         this.advisors = save.getAdvisorsStream().map(AdvisorDTO::new).toList();
         this.countries = list.parallelStream()
                              .map(c -> {
@@ -222,7 +241,8 @@ public class SaveDTO {
                                 .getInstitutions()
                                 .stream()
                                 .map(institution -> {
-                                    SaveProvince origin = save.getInstitutions().isAvailable(institution) ? save.getInstitutions().getOrigin(institution) : null;
+                                    SaveProvince origin = save.getInstitutions().isAvailable(institution) ? save.getInstitutions().getOrigin(institution)
+                                                                                                          : null;
                                     return origin != null ? new InstitutionDTO(save, institution, origin.getId())
                                                           : new InstitutionDTO(save, institution, null);
                                 })
@@ -402,6 +422,18 @@ public class SaveDTO {
 
     public List<AreaDTO> getAreas() {
         return areas;
+    }
+
+    public List<RegionDTO> getRegions() {
+        return regions;
+    }
+
+    public List<SuperRegionDTO> getSuperRegions() {
+        return superRegions;
+    }
+
+    public List<ProvinceListDTO> getContinents() {
+        return continents;
     }
 
     public List<AdvisorDTO> getAdvisors() {

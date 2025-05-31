@@ -587,32 +587,30 @@ public class Eu4Service {
                                            .distinct()
                                            .toList();
 
-            CountDownLatch countDownLatch = new CountDownLatch(buildings.size());
-            ExecutorService poolExecutor = Executors.newFixedThreadPool(8);
-            for (Building building : buildings) {
-                poolExecutor.submit(() -> {
-                    try {
-                        File file = building.getImage();
+            try (ExecutorService poolExecutor = Executors.newFixedThreadPool(8)) {
+                CountDownLatch countDownLatch = new CountDownLatch(buildings.size());
 
-                        Constants.getFileChecksum(file).ifPresent(checksum -> {
-                            Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
+                for (Building building : buildings) {
+                    poolExecutor.submit(() -> {
+                        try {
+                            File file = building.getImage();
 
-                            if (image != null) {
-                                toSend.add(cPath.resolve(image));
-                            }
-                        });
-                    } finally {
-                        countDownLatch.countDown();
-                    }
-                });
-            }
+                            Constants.getFileChecksum(file).ifPresent(checksum -> {
+                                Path image = Game.convertImage(cPath, Path.of(""), checksum, file.toPath());
 
-            try {
+                                if (image != null) {
+                                    toSend.add(cPath.resolve(image));
+                                }
+                            });
+                        } finally {
+                            countDownLatch.countDown();
+                        }
+                    });
+                }
+
                 countDownLatch.await();
             } catch (InterruptedException e) {
                 LOGGER.error("An error occurred while waiting for building images: {}", e.getMessage(), e);
-            } finally {
-                poolExecutor.shutdownNow();
             }
         }
 
